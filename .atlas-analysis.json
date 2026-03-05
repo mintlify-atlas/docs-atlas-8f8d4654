@@ -1,0 +1,103 @@
+{
+  "projectType": "saas",
+  "projectName": "Calculus Learning Platform",
+  "projectDescription": "Interactive educational portal for students to learn calculus derivatives through contextual forums and exams",
+  "theme": "almond",
+  "primaryColor": "#244a76",
+  "lightColor": "#3b82f6",
+  "darkColor": "#1e3a5f",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart", "installation"]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/authentication",
+              "features/forums",
+              "features/exams",
+              "features/feedback"
+            ]
+          },
+          {
+            "group": "User Roles",
+            "pages": [
+              "roles/students",
+              "roles/professors"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/frontend",
+              "deployment/backend",
+              "deployment/database"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/register",
+              "api/auth/login",
+              "api/auth/profile"
+            ]
+          },
+          {
+            "group": "Forums",
+            "pages": [
+              "api/forums/overview",
+              "api/forums/submit",
+              "api/forums/responses"
+            ]
+          },
+          {
+            "group": "Exams",
+            "pages": [
+              "api/exams/exam1",
+              "api/exams/exam2",
+              "api/exams/verify"
+            ]
+          },
+          {
+            "group": "Professor Panel",
+            "pages": [
+              "api/professor/students",
+              "api/professor/expediente",
+              "api/professor/feedback"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "User authentication with role-based access (student/professor)",
+    "Interactive forum activities for learning derivatives",
+    "Multiple exam types with automatic submission tracking",
+    "Professor dashboard for student progress monitoring",
+    "Feedback system for personalized learning",
+    "Image upload support for mathematical sketches"
+  ],
+  "publicApiSurface": [
+    "POST /registrar - User registration",
+    "POST /login - User authentication",
+    "POST /guardar_foro{foro_id} - Submit forum responses",
+    "GET /respuestas_foro{foro_id} - Get forum responses",
+    "POST /guardar_examen1 - Submit exam 1",
+    "POST /guardar_examen2 - Submit exam 2",
+    "GET /lista_estudiantes - Get student list (professor)",
+    "GET /expediente_completo/{email} - Get student record",
+    "POST /guardar_feedback - Submit feedback",
+    "GET /obtener_feedback/{email} - Get student feedback"
+  ]
+}
