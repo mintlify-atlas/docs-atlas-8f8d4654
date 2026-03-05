@@ -24,7 +24,7 @@ These endpoints allow professors to provide written feedback on student activiti
 </ParamField>
 
 ```bash cURL
-curl -X POST "https://api.example.com/guardar_feedback" \
+curl -X POST "https://proyecto-ingenieria-software-6ccv.onrender.com/guardar_feedback" \
   -H "Content-Type: application/json" \
   -d '{
     "email_alumno": "student@example.com",
@@ -91,7 +91,7 @@ class FeedbackData(BaseModel):
 </ParamField>
 
 ```bash cURL
-curl -X GET "https://api.example.com/obtener_feedback/student@example.com" \
+curl -X GET "https://proyecto-ingenieria-software-6ccv.onrender.com/obtener_feedback/student@example.com" \
   -H "Content-Type: application/json"
 ```
 

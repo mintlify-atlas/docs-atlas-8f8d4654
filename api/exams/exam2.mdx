@@ -7,7 +7,7 @@ description: "Submit and retrieve Exam 2 responses"
 
 <RequestExample>
 ```bash cURL
-curl -X POST https://api.example.com/guardar_examen2 \
+curl -X POST https://proyecto-ingenieria-software-6ccv.onrender.com/guardar_examen2 \
   -H "Content-Type: application/json" \
   -d '{
     "email": "student@example.com",
@@ -22,7 +22,7 @@ curl -X POST https://api.example.com/guardar_examen2 \
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.example.com/guardar_examen2', {
+const response = await fetch('https://proyecto-ingenieria-software-6ccv.onrender.com/guardar_examen2', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ console.log(data);
 ```python Python
 import requests
 
-url = "https://api.example.com/guardar_examen2"
+url = "https://proyecto-ingenieria-software-6ccv.onrender.com/guardar_examen2"
 payload = {
     "email": "student@example.com",
     "r1": "answer1",
@@ -126,11 +126,11 @@ print(response.json())
 
 <RequestExample>
 ```bash cURL
-curl https://api.example.com/respuestas_examen2
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/respuestas_examen2
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://api.example.com/respuestas_examen2');
+const response = await fetch('https://proyecto-ingenieria-software-6ccv.onrender.com/respuestas_examen2');
 const submissions = await response.json();
 console.log(submissions);
 ```
@@ -138,7 +138,7 @@ console.log(submissions);
 ```python Python
 import requests
 
-response = requests.get("https://api.example.com/respuestas_examen2")
+response = requests.get("https://proyecto-ingenieria-software-6ccv.onrender.com/respuestas_examen2")
 submissions = response.json()
 print(submissions)
 ```

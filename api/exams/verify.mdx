@@ -7,12 +7,12 @@ description: "Check if a student has already submitted an exam"
 
 <RequestExample>
 ```bash cURL
-curl https://api.example.com/verificar_examen1/student@example.com
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_examen1/student@example.com
 ```
 
 ```javascript JavaScript
 const email = 'student@example.com';
-const response = await fetch(`https://api.example.com/verificar_examen1/${email}`);
+const response = await fetch(`https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_examen1/${email}`);
 const data = await response.json();
 
 if (data.participo) {
@@ -26,7 +26,7 @@ if (data.participo) {
 import requests
 
 email = "student@example.com"
-response = requests.get(f"https://api.example.com/verificar_examen1/{email}")
+response = requests.get(f"https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_examen1/{email}")
 data = response.json()
 
 if data["participo"]:
@@ -72,12 +72,12 @@ else:
 
 <RequestExample>
 ```bash cURL
-curl https://api.example.com/verificar_examen2/student@example.com
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_examen2/student@example.com
 ```
 
 ```javascript JavaScript
 const email = 'student@example.com';
-const response = await fetch(`https://api.example.com/verificar_examen2/${email}`);
+const response = await fetch(`https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_examen2/${email}`);
 const data = await response.json();
 
 if (data.participo) {
@@ -91,7 +91,7 @@ if (data.participo) {
 import requests
 
 email = "student@example.com"
-response = requests.get(f"https://api.example.com/verificar_examen2/{email}")
+response = requests.get(f"https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_examen2/{email}")
 data = response.json()
 
 if data["participo"]:
@@ -145,7 +145,7 @@ The verification endpoints are useful for:
 
 ```javascript JavaScript
 async function checkExamAccess(email) {
-  const response = await fetch(`https://api.example.com/verificar_examen1/${email}`);
+  const response = await fetch(`https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_examen1/${email}`);
   const data = await response.json();
   
   if (data.participo) {
@@ -164,7 +164,7 @@ if (await checkExamAccess(userEmail)) {
 
 ```python Python
 def check_exam_access(email: str) -> bool:
-    response = requests.get(f"https://api.example.com/verificar_examen1/{email}")
+    response = requests.get(f"https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_examen1/{email}")
     data = response.json()
     
     if data["participo"]:
