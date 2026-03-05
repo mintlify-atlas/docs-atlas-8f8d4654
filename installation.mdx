@@ -1,0 +1,493 @@
+---
+title: Installation
+description: Set up the Calculus Learning Platform development environment
+---
+
+## Overview
+
+This guide walks you through setting up the complete development environment for the Calculus Learning Platform, including both the Vue 3 frontend and FastAPI backend.
+
+<Warning>
+  This guide is for **developers** who want to contribute to the platform or run it locally. If you're a student or professor just using the platform, see the [Quick Start](/quickstart) guide instead.
+</Warning>
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+### Required Software
+
+<CardGroup cols={3}>
+  <Card title="Node.js" icon="node-js">
+    Version **20.19.0+** or **22.12.0+**
+  </Card>
+  <Card title="Python" icon="python">
+    Version **3.8+** recommended
+  </Card>
+  <Card title="PostgreSQL" icon="database">
+    Version **12+** recommended
+  </Card>
+</CardGroup>
+
+### Verify Installations
+
+Check that you have the correct versions:
+
+<CodeGroup>
+```bash Node.js
+node --version
+# Should output v20.19.0 or higher
+```
+
+```bash Python
+python --version
+# or
+python3 --version
+```
+
+```bash PostgreSQL
+psql --version
+```
+</CodeGroup>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the project repository to your local machine:
+    
+    ```bash
+    git clone <repository-url>
+    cd <project-directory>
+    ```
+    
+    <Tip>
+      Replace `<repository-url>` with the actual Git repository URL provided by your team.
+    </Tip>
+  </Step>
+
+  <Step title="Install Frontend Dependencies">
+    Navigate to the project root and install the Vue 3 frontend dependencies:
+    
+    <CodeGroup>
+    ```bash npm
+    npm install
+    ```
+    
+    ```bash yarn
+    yarn install
+    ```
+    
+    ```bash pnpm
+    pnpm install
+    ```
+    </CodeGroup>
+    
+    This will install the following key packages:
+    
+    - **vue** (3.5.22) - Core Vue framework
+    - **vue-router** (4.6.3) - Client-side routing
+    - **vite** (7.1.11) - Build tool and dev server
+    - **axios** (1.13.2) - HTTP client for API requests
+    - **tailwindcss** (4.1.16) - CSS framework
+    - **@vitejs/plugin-vue** - Vite plugin for Vue SFCs
+  </Step>
+
+  <Step title="Install Backend Dependencies">
+    Navigate to the backend directory and install Python dependencies:
+    
+    ```bash
+    cd back
+    pip install -r requirements.txt
+    ```
+    
+    Or using Python 3 explicitly:
+    
+    ```bash
+    pip3 install -r requirements.txt
+    ```
+    
+    This installs:
+    
+    - **fastapi** - Modern web framework for building APIs
+    - **uvicorn** - ASGI server for running FastAPI
+    - **psycopg2-binary** - PostgreSQL adapter for Python
+    - **pydantic** - Data validation using Python type hints
+    - **python-multipart** - For handling file uploads
+    
+    <Info>
+      Consider using a virtual environment to isolate dependencies:
+      
+      ```bash
+      python -m venv venv
+      source venv/bin/activate  # On Windows: venv\Scripts\activate
+      pip install -r requirements.txt
+      ```
+    </Info>
+  </Step>
+
+  <Step title="Configure the Database">
+    Set up your PostgreSQL database:
+    
+    ### Create the Database
+    
+    ```bash
+    psql -U postgres
+    CREATE DATABASE calculus_platform;
+    \q
+    ```
+    
+    ### Update Database Connection
+    
+    Open `back/main.py` and locate the `conectar_bd()` function (line 104):
+    
+    ```python back/main.py
+    def conectar_bd():
+        try:
+            conn = psycopg2.connect(
+                host="localhost",          # Change from remote host
+                database="calculus_platform",  # Your local database name
+                user="your_username",      # Your PostgreSQL username
+                password="your_password",  # Your PostgreSQL password
+                port=5432,
+                sslmode="require"          # Optional for local dev
+            )
+            return conn
+        except Exception as e:
+            print(f"Error conectando a la BD: {e}")
+            return None
+    ```
+    
+    <Warning>
+      **Never commit database credentials to version control!** Consider using environment variables:
+      
+      ```python
+      import os
+      
+      conn = psycopg2.connect(
+          host=os.getenv("DB_HOST", "localhost"),
+          database=os.getenv("DB_NAME", "calculus_platform"),
+          user=os.getenv("DB_USER", "postgres"),
+          password=os.getenv("DB_PASSWORD"),
+          port=int(os.getenv("DB_PORT", 5432))
+      )
+      ```
+    </Warning>
+  </Step>
+
+  <Step title="Create Database Tables">
+    Create the required database schema:
+    
+    ```sql
+    -- Users table
+    CREATE TABLE usuarios (
+        email VARCHAR(255) PRIMARY KEY,
+        password VARCHAR(255) NOT NULL,
+        nombre VARCHAR(255),
+        apellidos VARCHAR(255)
+    );
+    
+    -- Forum response tables
+    CREATE TABLE respuestas_foro1 (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) REFERENCES usuarios(email),
+        r1 TEXT,
+        r2 TEXT,
+        r3 TEXT,
+        r4 TEXT,
+        r5 TEXT,
+        r6 TEXT,
+        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Create similar tables for foro2, foro3, foro4, foro5, foro6
+    -- Also create tables: examen1, examen2, feedback
+    ```
+    
+    <Info>
+      Forum 3 has a special table structure with additional columns for table data (`t6_r1_c1`, `t6_r1_c2`, etc.).
+      
+      Forum 5 includes BYTEA columns for image storage: `imagen_pregunta_3`, `imagen_1`, `imagen_2`, `imagen_3`.
+    </Info>
+  </Step>
+
+  <Step title="Run the Backend Server">
+    Start the FastAPI backend with Uvicorn:
+    
+    ```bash
+    cd back
+    uvicorn main:app --reload --host 127.0.0.1 --port 8000
+    ```
+    
+    Or use the Python command directly:
+    
+    ```bash
+    python main.py
+    ```
+    
+    You should see output like:
+    
+    ```
+    INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+    INFO:     Started reloader process [12345] using StatReload
+    INFO:     Started server process [12346]
+    INFO:     Waiting for application startup.
+    INFO:     Application startup complete.
+    ```
+    
+    <Tip>
+      The `--reload` flag enables auto-reloading when you make code changes.
+    </Tip>
+  </Step>
+
+  <Step title="Run the Frontend Server">
+    In a new terminal, start the Vite development server:
+    
+    <CodeGroup>
+    ```bash npm
+    npm run dev
+    ```
+    
+    ```bash yarn
+    yarn dev
+    ```
+    
+    ```bash pnpm
+    pnpm dev
+    ```
+    </CodeGroup>
+    
+    The frontend will start on `http://localhost:5173` (default Vite port):
+    
+    ```
+    VITE v7.1.11  ready in 234 ms
+    
+    ➜  Local:   http://localhost:5173/
+    ➜  Network: use --host to expose
+    ➜  press h + enter to show help
+    ```
+  </Step>
+
+  <Step title="Access the Application">
+    Open your browser and navigate to:
+    
+    ```
+    http://localhost:5173
+    ```
+    
+    You should see the login page. Test the installation by:
+    
+    1. Creating a test account
+    2. Logging in
+    3. Navigating to Forum 1
+    4. Verifying the backend connection is working
+    
+    <Info>
+      The frontend makes API calls to the backend at the URL specified in the Vue components (currently `https://proyecto-ingenieria-software-6ccv.onrender.com`). For local development, update these URLs to `http://127.0.0.1:8000`.
+    </Info>
+  </Step>
+</Steps>
+
+## Configuration
+
+### Update API Base URL
+
+For local development, you'll need to update API endpoints in the Vue components:
+
+<CodeGroup>
+```javascript Before (Production)
+const urlBase = "https://proyecto-ingenieria-software-6ccv.onrender.com";
+```
+
+```javascript After (Local Development)
+const urlBase = "http://127.0.0.1:8000";
+```
+</CodeGroup>
+
+**Files to update:**
+- `src/views/Login.vue` (line 277)
+- `src/views/foro_1.vue` (line 394, 427, 462)
+- All other forum components
+
+<Tip>
+  Consider creating an environment variable for the API base URL:
+  
+  ```javascript
+  const urlBase = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+  ```
+  
+  Then create a `.env.local` file:
+  
+  ```bash
+  VITE_API_URL=http://127.0.0.1:8000
+  ```
+</Tip>
+
+### CORS Configuration
+
+The backend is already configured to accept requests from any origin (line 16-22 in `main.py`):
+
+```python back/main.py
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+<Warning>
+  In production, restrict `allow_origins` to specific domains:
+  
+  ```python
+  allow_origins=["https://your-frontend-domain.com"]
+  ```
+</Warning>
+
+## Building for Production
+
+### Frontend Build
+
+<CodeGroup>
+```bash npm
+npm run build
+```
+
+```bash yarn
+yarn build
+```
+
+```bash pnpm
+pnpm build
+```
+</CodeGroup>
+
+This creates an optimized production build in the `dist/` directory.
+
+### Preview Production Build
+
+<CodeGroup>
+```bash npm
+npm run preview
+```
+
+```bash yarn
+yarn preview
+```
+
+```bash pnpm
+pnpm preview
+```
+</CodeGroup>
+
+### Backend Deployment
+
+For production deployment, run Uvicorn without the `--reload` flag:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+<Info>
+  Consider using a process manager like **Supervisor** or **systemd** for production deployments.
+</Info>
+
+## Troubleshooting
+
+### Frontend Issues
+
+<AccordionGroup>
+  <Accordion title="Error: Cannot find module 'vue'">
+    Make sure you've installed all dependencies:
+    
+    ```bash
+    npm install
+    ```
+  </Accordion>
+  
+  <Accordion title="Port 5173 already in use">
+    Kill the process using that port or specify a different port:
+    
+    ```bash
+    npm run dev -- --port 3000
+    ```
+  </Accordion>
+  
+  <Accordion title="API requests failing">
+    Verify:
+    1. Backend is running on port 8000
+    2. API base URL is correct in Vue components
+    3. No CORS errors in browser console
+  </Accordion>
+</AccordionGroup>
+
+### Backend Issues
+
+<AccordionGroup>
+  <Accordion title="Error: No module named 'fastapi'">
+    Install Python dependencies:
+    
+    ```bash
+    pip install -r requirements.txt
+    ```
+  </Accordion>
+  
+  <Accordion title="Database connection error">
+    Check:
+    1. PostgreSQL is running
+    2. Database credentials are correct in `main.py`
+    3. Database exists and tables are created
+  </Accordion>
+  
+  <Accordion title="Port 8000 already in use">
+    Find and kill the process, or use a different port:
+    
+    ```bash
+    uvicorn main:app --reload --port 8001
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Development Workflow
+
+### Recommended Setup
+
+1. **Terminal 1**: Run backend with auto-reload
+   ```bash
+   cd back && uvicorn main:app --reload
+   ```
+
+2. **Terminal 2**: Run frontend with hot module replacement
+   ```bash
+   npm run dev
+   ```
+
+3. **Terminal 3**: Available for database commands, git, etc.
+
+### Code Structure
+
+```
+project-root/
+├── src/                  # Vue 3 frontend
+│   ├── views/           # Page components (Login, Forum pages)
+│   ├── imagenes/        # Image assets
+│   └── main.js          # Vue app entry point
+├── back/                # FastAPI backend
+│   └── main.py          # API routes and database logic
+├── package.json         # Frontend dependencies
+├── requirements.txt     # Backend dependencies
+├── vite.config.js       # Vite configuration
+└── tailwind.config.js   # Tailwind CSS configuration
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api/auth/register">
+    Explore the FastAPI endpoints and data models
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get started using the platform
+  </Card>
+</CardGroup>

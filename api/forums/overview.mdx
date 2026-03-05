@@ -1,0 +1,125 @@
+---
+title: 'Forums API Overview'
+description: 'Interactive forum system for calculus learning activities'
+---
+
+## Base URL
+
+```
+https://proyecto-ingenieria-software-6ccv.onrender.com
+```
+
+## Forum Types
+
+The platform supports six different forums with two routing patterns:
+
+### Dynamic Forums (1, 2, 4, 6)
+
+These forums use dynamic routing with configurable question counts:
+
+<ResponseField name="FOROS Configuration" type="array">
+  <Expandable title="Forum Objects">
+    <ResponseField name="id" type="integer">
+      Forum identifier (1, 2, 4, or 6)
+    </ResponseField>
+    <ResponseField name="nombre" type="string">
+      Database table name (e.g., `respuestas_foro1`)
+    </ResponseField>
+    <ResponseField name="preguntas" type="integer">
+      Number of questions in the forum
+    </ResponseField>
+    <ResponseField name="ruta" type="string">
+      URL route segment (e.g., `foro1`)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Forum Configuration** (from main.py:91-96):
+
+```python
+FOROS = [
+    {"id": 1, "nombre": "respuestas_foro1", "preguntas": 6, "ruta": "foro1"},
+    {"id": 2, "nombre": "respuestas_foro2", "preguntas": 6, "ruta": "foro2"},
+    {"id": 4, "nombre": "respuestas_foro4", "preguntas": 7, "ruta": "foro4"},
+    {"id": 6, "nombre": "respuestas_foro6", "preguntas": 8, "ruta": "foro6"}
+]
+```
+
+### Special Forums
+
+#### Forum 3 - Table-Based Responses
+
+Forum 3 uses a specialized schema with complex table fields for question 6:
+
+- **Regular questions**: r1 through r5, r7, r8
+- **Table question (6)**: 7 rows × 3 columns with format `t6_r{row}_c{col}`
+- **Dedicated endpoints**: `/guardar_en_foro_3`, `/respuestas_en_foro_3`
+
+#### Forum 5 - Image Uploads
+
+Forum 5 handles multipart form data with image uploads:
+
+- **Text responses**: r2, r3, r4, r5, r6
+- **Image for question 3**: Single file upload (`imagen_pregunta_3`)
+- **Table images**: Array of 3 images for table questions
+- **Endpoint**: `/guardar_foro5/{email}` (FormData)
+
+## Common Endpoints Pattern
+
+All forums share these endpoint types:
+
+<CardGroup cols={2}>
+  <Card title="Submit" icon="paper-plane">
+    POST endpoint to save forum responses
+  </Card>
+  <Card title="Retrieve" icon="database">
+    GET endpoint to fetch all responses with user data
+  </Card>
+  <Card title="Verify" icon="check-circle">
+    GET endpoint to check if user already participated
+  </Card>
+</CardGroup>
+
+## Dynamic Routing
+
+For forums 1, 2, 4, and 6, replace `{foro_id}` with the forum number:
+
+```bash
+# Forum 1 examples
+POST /guardar_foro1
+GET /respuestas_foro1
+GET /verificar_foro1/{email}
+
+# Forum 4 examples
+POST /guardar_foro4
+GET /respuestas_foro4
+GET /verificar_foro4/{email}
+```
+
+## Response Features
+
+<Note>
+  All GET endpoints for responses attempt to JOIN with the `usuarios` table to include `nombre` and `apellidos` fields. If the JOIN fails, only forum response data is returned.
+</Note>
+
+### Duplicate Prevention
+
+All submission endpoints check for existing responses by email and return success without inserting duplicates:
+
+```json
+{
+  "mensaje": "Ya has participado",
+  "exito": true
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Submit Responses" href="/api/forums/submit" icon="upload">
+    Learn how to submit forum responses
+  </Card>
+  <Card title="Retrieve Data" href="/api/forums/responses" icon="download">
+    Fetch and verify forum participation
+  </Card>
+</CardGroup>

@@ -1,0 +1,281 @@
+---
+title: 'Profile Management'
+description: 'Update and retrieve user profile information'
+---
+
+## Overview
+
+The profile management endpoints allow users to update their name information and retrieve user details by email.
+
+---
+
+## Update Profile
+
+<ParamField path="endpoint" type="string">
+  POST /actualizar_perfil
+</ParamField>
+
+Updates a user's `nombre` (first name) and `apellidos` (last name) fields.
+
+### Request Body
+
+Uses the `UsuarioDatos` Pydantic model:
+
+<ParamField body="email" type="string" required>
+  User's email address (identifies which user to update)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Updated first name
+</ParamField>
+
+<ParamField body="apellidos" type="string" required>
+  Updated last name
+</ParamField>
+
+### Response
+
+<ResponseField name="mensaje" type="string">
+  Success message: `"Datos guardados"`
+</ResponseField>
+
+<ResponseField name="exito" type="boolean">
+  Always `true` on successful update
+</ResponseField>
+
+```json
+{
+  "mensaje": "Datos guardados",
+  "exito": true
+}
+```
+
+### Examples
+
+#### cURL
+
+```bash
+curl -X POST http://localhost:8000/actualizar_perfil \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "student@example.com",
+    "nombre": "María",
+    "apellidos": "Rodríguez"
+  }'
+```
+
+#### Python
+
+```python
+import requests
+
+url = "http://localhost:8000/actualizar_perfil"
+data = {
+    "email": "student@example.com",
+    "nombre": "María",
+    "apellidos": "Rodríguez"
+}
+
+response = requests.post(url, json=data)
+result = response.json()
+
+if result["exito"]:
+    print("Profile updated successfully!")
+```
+
+#### JavaScript
+
+```javascript
+const updateProfile = async (email, nombre, apellidos) => {
+  const response = await axios.post('http://localhost:8000/actualizar_perfil', {
+    email: email,
+    nombre: nombre,
+    apellidos: apellidos
+  });
+  
+  if (response.data.exito) {
+    console.log('Profile updated!');
+  }
+};
+
+updateProfile('student@example.com', 'María', 'Rodríguez');
+```
+
+---
+
+## Get User Details
+
+<ParamField path="endpoint" type="string">
+  GET /conseguir_usuario/{email}
+</ParamField>
+
+Retrieves user profile information by email address.
+
+### Path Parameters
+
+<ParamField path="email" type="string" required>
+  User's email address
+</ParamField>
+
+### Response
+
+<ResponseField name="nombre" type="string">
+  User's first name
+</ResponseField>
+
+<ResponseField name="apellidos" type="string">
+  User's last name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  User's email address
+</ResponseField>
+
+#### Success Response
+
+```json
+{
+  "nombre": "Juan",
+  "apellidos": "García",
+  "email": "student@example.com"
+}
+```
+
+#### Error Response
+
+If the user is not found:
+
+```json
+{
+  "detail": "Usuario no encontrado"
+}
+```
+
+HTTP Status: `404 Not Found`
+
+### Examples
+
+#### cURL
+
+```bash
+curl -X GET http://localhost:8000/conseguir_usuario/student@example.com
+```
+
+#### Python
+
+```python
+import requests
+
+email = "student@example.com"
+url = f"http://localhost:8000/conseguir_usuario/{email}"
+
+response = requests.get(url)
+
+if response.status_code == 200:
+    user = response.json()
+    print(f"Name: {user['nombre']} {user['apellidos']}")
+    print(f"Email: {user['email']}")
+elif response.status_code == 404:
+    print("User not found")
+else:
+    print(f"Error: {response.status_code}")
+```
+
+#### JavaScript
+
+```javascript
+const getUserDetails = async (email) => {
+  try {
+    const response = await axios.get(
+      `http://localhost:8000/conseguir_usuario/${email}`
+    );
+    
+    const user = response.data;
+    console.log(`Name: ${user.nombre} ${user.apellidos}`);
+    console.log(`Email: ${user.email}`);
+    
+    return user;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      console.error('User not found');
+    } else {
+      console.error('Request failed:', error.message);
+    }
+    return null;
+  }
+};
+
+getUserDetails('student@example.com');
+```
+
+#### React Hook Example
+
+```javascript
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+function useUserProfile(email) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:8000/conseguir_usuario/${email}`
+        );
+        setUser(response.data);
+      } catch (err) {
+        setError(err.response?.status === 404 
+          ? 'User not found' 
+          : 'Failed to load user'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (email) {
+      fetchUser();
+    }
+  }, [email]);
+
+  return { user, loading, error };
+}
+
+// Usage in component
+function UserProfile({ email }) {
+  const { user, loading, error } = useUserProfile(email);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  
+  return (
+    <div>
+      <h2>{user.nombre} {user.apellidos}</h2>
+      <p>Email: {user.email}</p>
+    </div>
+  );
+}
+```
+
+---
+
+## Implementation Notes
+
+### Update Profile
+- Updates only `nombre` and `apellidos` fields
+- Password cannot be changed through this endpoint
+- No validation that the user exists (will succeed even if email doesn't exist)
+- Database connection errors raise HTTP 500
+
+### Get User Details
+- Returns HTTP 404 if user not found
+- Email parameter is case-sensitive
+- Returns plain object (not nested in `data` field)
+- Database connection properly closed in `finally` block
+
+<Warning>
+The update profile endpoint does not verify that the user exists before attempting the update. Consider adding existence validation in production.
+</Warning>

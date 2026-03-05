@@ -1,0 +1,720 @@
+---
+title: Exam System
+description: Comprehensive exam assessments with interactive quizzes and gamified learning activities
+---
+
+The platform includes two major exams that evaluate student understanding of calculus derivatives concepts through multiple-choice questions, interactive games, and open-response questions.
+
+## Overview
+
+Both exams combine traditional assessment with gamified elements:
+
+<CardGroup cols={2}>
+  <Card title="Examen 1" icon="clipboard-question">
+    **Focus:** DMO and Age relationship basics
+    
+    - 3 multiple-choice questions
+    - Sentence ordering game
+    - Matching pairs game
+    - Total: ~8 points
+  </Card>
+  
+  <Card title="Examen 2" icon="clipboard-check">
+    **Focus:** Graph modeling and analysis
+    
+    - 7 mixed questions (MCQ + open response)
+    - Matching activity
+    - No games
+    - Conceptual depth
+  </Card>
+</CardGroup>
+
+## Exam 1 Structure
+
+### Phase 1: Multiple Choice Quiz (3 questions)
+
+**Question Types with Immediate Feedback:**
+
+```javascript
+// examen1.vue:343-369
+const preguntas = ref([
+  {
+    texto: "La Densidad Mineral Ósea (DMO) que mide el volumen del esqueleto humano...",
+    opciones: [
+      "A) Son diferentes solo en la vejez.",
+      "B) Son diferentes desde el nacimiento.",
+      "C) Son iguales en la niñez y se empiezan a diferenciar a partir de la adolescencia.",
+      "D) Son iguales, no hay diferencia."
+    ],
+    correcta: "C) Son iguales en la niñez y se empiezan a diferenciar a partir de la adolescencia."
+  },
+  {
+    texto: "¿Cómo sabemos que la DMO tiene un valor máximo a lo largo de la vida?",
+    opciones: [...],
+    correcta: "D) Porque aumenta conforme crecemos pero luego empieza a disminuir..."
+  },
+  {
+    texto: "De las siguientes figuras, selecciona la que representa mejor cómo varía la DMO...",
+    opciones: ["A", "B", "C", "D"],
+    correcta: "D"
+  }
+]);
+```
+
+**Immediate Feedback Implementation:**
+
+```javascript
+// examen1.vue:446-469
+function verificarRespuesta() {
+  if (respuestaUsuario.value === null || respuestaUsuario.value === '') {
+    alert("Por favor selecciona una respuesta");
+    return;
+  }
+  
+  const pregunta = preguntas.value[preguntaActual.value];
+  const key = `r${preguntaActual.value + 1}`;
+  respuestasGuardadas.value[key] = respuestaUsuario.value;
+  
+  // Check if correct
+  if (respuestaUsuario.value === pregunta.correcta) {
+    esRespuestaCorrecta.value = true;
+    puntajeQuiz.value++;
+  } else {
+    esRespuestaCorrecta.value = false;
+  }
+  
+  mostrandoFeedback.value = true;  // Show feedback before advancing
+}
+```
+
+<Steps>
+  <Step title="Student Selects Answer">
+    Radio button selection from 4 options
+  </Step>
+  <Step title="Click 'Enviar Respuesta'">
+    Answer is validated against the correct answer
+  </Step>
+  <Step title="Immediate Feedback Displayed">
+    Green checkmark for correct, red X for incorrect with correct answer shown
+  </Step>
+  <Step title="Click 'Siguiente Pregunta'">
+    Advance to next question or finish quiz
+  </Step>
+</Steps>
+
+**Visual Feedback:**
+
+```vue
+<!-- examen1.vue:128-142 -->
+<div v-if="mostrandoFeedback" class="mt-6 p-4 rounded-xl animate-fade-in"
+     :class="esRespuestaCorrecta ? 'bg-green-900/20 border border-green-500/30' : 'bg-red-900/20 border border-red-500/30'">
+  <div class="flex items-center gap-3 mb-2">
+    <span class="material-symbols-outlined text-2xl">
+      {{ esRespuestaCorrecta ? 'check_circle' : 'cancel' }}
+    </span>
+    <h3 class="font-bold text-lg">
+      {{ esRespuestaCorrecta ? '¡Correcto!' : 'Respuesta Incorrecta' }}
+    </h3>
+  </div>
+  <p v-if="!esRespuestaCorrecta">
+    La respuesta correcta es: <strong class="underline">{{ preguntas[preguntaActual].correcta }}</strong>
+  </p>
+</div>
+```
+
+### Phase 2: Sentence Ordering Game
+
+**Game Mechanic:** Drag words to form a correct sentence about DMO
+
+```javascript
+// examen1.vue:382-387
+const oracionCorrecta = [
+  "En", "general", "la DMO", "de la", "cadera", 
+  "es mayor", "en el hombre", "que", "en", "las mujeres"
+];
+const palabrasDesordenadas = ref([...oracionCorrecta].sort(() => Math.random() - 0.5));
+const oracionUsuario = ref([]);
+```
+
+**Word Movement Logic:**
+
+```javascript
+// examen1.vue:487-504
+function moverPalabra(palabra, origen) {
+  if (juego1Completado.value) return;
+  
+  if (origen === "banco") {
+    // Move from word bank to sentence area
+    const index = palabrasDesordenadas.value.indexOf(palabra);
+    if (index > -1) {
+      palabrasDesordenadas.value.splice(index, 1);
+      oracionUsuario.value.push(palabra);
+    }
+  } else {
+    // Move back from sentence to word bank
+    const index = oracionUsuario.value.indexOf(palabra);
+    if (index > -1) {
+      oracionUsuario.value.splice(index, 1);
+      palabrasDesordenadas.value.push(palabra);
+    }
+  }
+}
+```
+
+**Verification:**
+
+```javascript
+// examen1.vue:506-514
+function verificarOracion() {
+  const oracionStr = oracionUsuario.value.join(" ");
+  const correctaStr = oracionCorrecta.join(" ");
+  const esCorrecto = oracionStr === correctaStr;
+  
+  juego1Correcto.value = esCorrecto;
+  juego1Completado.value = true;
+  respuestasGuardadas.value.r4 = esCorrecto ? "Correcto" : "Incorrecto";
+}
+```
+
+### Phase 3: Matching Pairs Game
+
+**Game Data:**
+
+```javascript
+// examen1.vue:388-394
+const parejas = [
+  { id: 1, termino: "Adolescencia y los primeros años de adultez", 
+    definicion: "Etapa en la que aumenta mas la DMO" },
+  { id: 2, termino: "25 y 35 años", 
+    definicion: "Rango de edad en el que la DMO llega su valor maximo" },
+  { id: 3, termino: "1.025", 
+    definicion: "Valor maximo de la DMO en el hombre" },
+  { id: 4, termino: ".938", 
+    definicion: "Valor maximo de la DMO en la mujer" }
+];
+```
+
+**Selection Logic:**
+
+```javascript
+// examen1.vue:525-553
+function seleccionarItem(item) {
+  if (item.matched) return;  // Already matched
+  if (seleccionActual.value?.type === item.type) return;  // Same type (both terms or both definitions)
+  
+  if (!seleccionActual.value) {
+    // First selection
+    seleccionActual.value = item;
+    return;
+  }
+  
+  const primerItem = seleccionActual.value;
+  
+  // Check if IDs match and types are different
+  if (primerItem.id === item.id && primerItem.type !== item.type) {
+    // Correct match!
+    primerItem.matched = true;
+    item.matched = true;
+    actualizarEstadoItem(primerItem, true);
+    actualizarEstadoItem(item, true);
+    parejasEncontradas.value++;
+    mostrarFeedbackPositivo();
+  } else {
+    // Wrong match
+    mostrarFeedbackNegativo();
+    setTimeout(() => {
+      seleccionActual.value = null;
+    }, 1000);
+    return;
+  }
+  seleccionActual.value = null;
+}
+```
+
+**Progress Tracking:**
+
+```vue
+<!-- examen1.vue:239-248 -->
+<div class="mb-6">
+  <div class="flex justify-between items-center mb-2 text-sm text-white/70">
+    <span>Progreso</span>
+    <span>{{ parejasEncontradas }} / {{ parejas.length }}</span>
+  </div>
+  <div class="w-full bg-white/10 rounded-full h-2">
+    <div class="bg-purple-500 h-2 rounded-full transition-all duration-500"
+         :style="{ width: `${(parejasEncontradas / parejas.length) * 100}%` }">
+    </div>
+  </div>
+</div>
+```
+
+### Final Score Summary
+
+```javascript
+// examen1.vue:627-634
+const puntajeTotal = computed(() => {
+  let p = puntajeQuiz.value;  // 0-3 points from quiz
+  if (juego1Correcto.value) p += 1;  // +1 for sentence game
+  p += parejasEncontradas.value;  // +4 for matching (1 per pair)
+  return p;
+});
+
+const totalPosible = computed(() => preguntas.value.length + 1 + parejas.length);
+// = 3 + 1 + 4 = 8 points
+```
+
+**Score Display:**
+
+```vue
+<!-- examen1.vue:296-320 -->
+<div v-if="faseActual === 'final'" class="mt-10 animate-in fade-in duration-500">
+  <div class="bg-[#161d2b] rounded-2xl p-8 shadow-2xl text-center">
+    <h2 class="text-white text-3xl font-bold mb-2">Resumen de Actividades</h2>
+    <p class="text-gray-400 mb-8">Has completado todas las secciones del Examen 1.</p>
+    
+    <div class="flex justify-center items-baseline gap-2 mb-8">
+      <span class="text-6xl font-black text-blue-400">{{ puntajeTotal }}</span>
+      <span class="text-2xl text-gray-500">/ {{ totalPosible }} pts</span>
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="bg-[#0f172a] p-4 rounded-xl">
+        <div class="text-xs text-gray-400 uppercase">Cuestionario</div>
+        <div class="text-2xl font-bold text-white">{{ puntajeQuiz }} / {{ preguntas.length }}</div>
+      </div>
+      <div class="bg-[#0f172a] p-4 rounded-xl">
+        <div class="text-xs text-gray-400 uppercase">Frase</div>
+        <div class="text-2xl font-bold text-white">{{ juego1Correcto ? 1 : 0 }} / 1</div>
+      </div>
+      <div class="bg-[#0f172a] p-4 rounded-xl">
+        <div class="text-xs text-gray-400 uppercase">Parejas</div>
+        <div class="text-2xl font-bold text-white">{{ parejasEncontradas }} / {{ parejas.length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+## Exam 2 Structure
+
+### Question Types
+
+Exam 2 includes 7 questions with mixed formats:
+
+```javascript
+// examen2.vue:392-464
+const preguntas = ref([
+  {
+    tipo: "standard",
+    texto: "Al tomar un valor de edad al inicio de la tabla y comenzar a aumentarlo ¿El valor de la DMO siempre aumenta?",
+    opciones: ["Verdadero", "Falso"],
+    correcta: "Verdadero"
+  },
+  {
+    tipo: "match",
+    texto: "Relaciona cómo cambia la densidad mineral ósea con respecto a la edad.",
+    items: [
+      { pregunta: "En la vida adulta", correcta: "La densidad mineral ósea cambia muy poco." },
+      { pregunta: "En la vejez", correcta: "La densidad mineral ósea disminuye." },
+      { pregunta: "Hasta la adolescencia...", correcta: "La densidad mineral ósea aumenta." }
+    ],
+    opciones: [
+      "La densidad mineral ósea aumenta.",
+      "La densidad mineral ósea cambia muy poco.",
+      "La densidad mineral ósea disminuye."
+    ]
+  },
+  {
+    tipo: "standard",
+    texto: "El gráfico que modela la relación entre la DMO y la Edad comienza en un valor por arriba de cero...",
+    correcta: "Verdadero"
+  },
+  {
+    tipo: "standard",  // Open response (no opciones)
+    texto: "La gráfica que elaboramos está basada en datos de una tabla... ¿podríamos representar estos valores con una gráfica continua? Justifica tu respuesta."
+  },
+  // ... 3 more questions
+]);
+```
+
+### Matching Question Handler
+
+```javascript
+// examen2.vue:545-597
+function verificarRespuesta() {
+  const pregunta = preguntas.value[preguntaActual.value];
+  
+  if (pregunta.tipo === "match") {
+    // Validate all dropdowns are filled
+    if (Object.keys(respuestasMatch.value).length < pregunta.items.length) {
+      alert("Por favor completa todas las opciones");
+      return;
+    }
+    
+    // Check if all matches are correct
+    let correctas = 0;
+    pregunta.items.forEach((item, index) => {
+      const userRes = respuestasMatch.value[index];
+      if (userRes === item.correcta) correctas++;
+    });
+    
+    if (correctas === pregunta.items.length) {
+      esCorrecto = true;
+      puntajeQuiz.value++;
+    }
+    esRespuestaCorrecta.value = esCorrecto;
+    mostrandoFeedback.value = true;
+  } else if (pregunta.opciones) {
+    // Standard multiple choice
+    if (respuestaUsuario.value === pregunta.correcta) {
+      puntajeQuiz.value++;
+    }
+    esRespuestaCorrecta.value = (respuestaUsuario.value === pregunta.correcta);
+    mostrandoFeedback.value = true;
+  } else {
+    // Open response - no feedback, just advance
+    siguientePregunta();
+  }
+}
+```
+
+**Matching UI:**
+
+```vue
+<!-- examen2.vue:239-266 -->
+<template v-if="preguntas[preguntaActual].tipo === 'match'">
+  <div v-for="(item, index) in preguntas[preguntaActual].items" :key="index"
+       class="flex flex-col gap-2 mb-4 bg-white/5 p-4 rounded-xl">
+    <p class="text-white font-medium">{{ item.pregunta }}</p>
+    <select v-model="respuestasMatch[index]"
+            class="bg-[#161d2b] text-white border border-white/20 rounded-lg p-3 w-full">
+      <option :value="undefined" disabled selected>Elegir...</option>
+      <option v-for="op in preguntas[preguntaActual].opciones" :key="op" :value="op">
+        {{ op }}
+      </option>
+    </select>
+  </div>
+</template>
+```
+
+**Open Response UI:**
+
+```vue
+<!-- examen2.vue:181-212 -->
+<textarea v-if="preguntaActual === 2"
+          v-model="respuestasGuardadas.r3"
+          rows="3"
+          placeholder="Respuesta"
+          class="input-foro">
+</textarea>
+
+<textarea v-if="preguntaActual === 3"
+          v-model="respuestasGuardadas.r4"
+          rows="3"
+          placeholder="Respuesta"
+          class="input-foro">
+</textarea>
+```
+
+## Submission Tracking
+
+Both exams enforce one-time submission:
+
+<Steps>
+  <Step title="Check Submission Status">
+    ```javascript
+    // examen1.vue:416-435
+    async function verificarEstado() {
+      const email = localStorage.getItem("usuario");
+      if (!email) {
+        cargandoEstado.value = false;
+        return;
+      }
+      
+      const response = await fetch(`${API_URL}/verificar_examen1/${email}`);
+      const data = await response.json();
+      if (data.participo) {
+        usuarioYaParticipo.value = true;
+        await cargarRespuestas();
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Backend Verification">
+    ```python
+    # main.py:359-368 (Examen 1)
+    @app.get("/verificar_examen1/{email}")
+    async def verificar_examen1(email: str):
+        cursor.execute(
+            "SELECT COUNT(*) FROM examen1 WHERE email = %s AND email != 'admin@gmail.com'", 
+            (email,)
+        )
+        return {"participo": cursor.fetchone()[0] > 0}
+    ```
+  </Step>
+  
+  <Step title="Display Mode">
+    - If `participo = false`: Show exam form
+    - If `participo = true`: Show all student submissions (read-only)
+  </Step>
+</Steps>
+
+<Warning>
+The admin account (`admin@gmail.com`) is excluded from the participation check, allowing professors to test exams multiple times without triggering the "already submitted" lock.
+</Warning>
+
+## One-Time Submission Enforcement
+
+### Frontend Lock
+
+```vue
+<!-- examen1.vue:27-40 -->
+<div v-if="cargandoEstado" class="text-center py-10">
+  <p class="text-white text-xl animate-pulse">Verificando tu participación...</p>
+</div>
+
+<div v-else-if="usuarioYaParticipo" class="mt-8 animate-fade-in">
+  <div class="bg-green-900/30 border border-green-500/50 p-4 rounded-xl mb-8">
+    <h3 class="font-bold text-xl">Examen Terminado</h3>
+    <p class="text-base opacity-80">Ya has enviado tus respuestas.</p>
+  </div>
+  
+  <!-- Display all student submissions -->
+  <div v-for="(item, index) in listaRespuestas" :key="index">
+    <!-- ... show results ... -->
+  </div>
+</div>
+```
+
+### Backend Enforcement
+
+```python
+# main.py:335-346 (Examen 1)
+@app.post("/guardar_examen1")
+async def guardar_examen1(datos: Examen1):
+    conexion = conectar_bd()
+    if not conexion: raise HTTPException(500, "Error BD")
+    try:
+        cursor = conexion.cursor()
+        # No duplicate check here - relying on frontend verification
+        query = "INSERT INTO examen1 (email,r1,r2,r3,r4,r5,r6) VALUES (%s, %s, %s, %s, %s, %s,%s)"
+        cursor.execute(query, (datos.email, datos.r1, datos.r2, datos.r3, datos.r4, datos.r5, datos.r6))
+        conexion.commit()
+        return {"mensaje": "Guardado", "exito": True}
+    finally:
+        conexion.close()
+```
+
+<Note>
+Unlike forums, the exam save endpoints don't perform server-side duplicate checks. The system relies on the frontend verification step to prevent multiple submissions.
+</Note>
+
+## Data Storage
+
+### Examen 1 Model
+
+```python
+# main.py:66-70
+class Examen1(BaseModel):
+    email: str
+    r1: str = ""  # Question 1 answer
+    r2: str = ""  # Question 2 answer
+    r3: str = ""  # Question 3 answer
+    r4: str = ""  # Sentence game result ("Correcto" or "Incorrecto")
+    r5: str = ""  # Matching game result ("4/4" format)
+    r6: str = ""  # Total score
+```
+
+### Examen 2 Model
+
+```python
+# main.py:71-79
+class Examen2(BaseModel):
+    email: str
+    r1: str = ""  # Question 1
+    r2: str = ""  # Question 2 (matching, stored as joined string)
+    r3: str = ""  # Question 3 (open response with image)
+    r4: str = ""  # Question 4 (open response)
+    r5: str = ""  # Question 5
+    r6: str = ""  # Question 6 (open response)
+    r7: str = ""  # Question 7 (open response)
+```
+
+### Submission Payload Example
+
+```javascript
+// examen1.vue:581-611
+async function enviarExamen() {
+  const email = localStorage.getItem("usuario");
+  if (!email) return alert("Error: Inicia sesión.");
+  
+  enviando.value = true;
+  try {
+    const payload = {
+      email: email,
+      ...respuestasGuardadas.value  // Contains r1-r6
+    };
+    
+    const response = await fetch(`${API_URL}/guardar_examen1`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    
+    if (data.exito) {
+      usuarioYaParticipo.value = true;
+      await cargarRespuestas();
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Error de conexión");
+  } finally {
+    enviando.value = false;
+  }
+}
+```
+
+## Viewing Results
+
+After submission, students see all class submissions:
+
+```javascript
+// examen1.vue:437-444
+async function cargarRespuestas() {
+  try {
+    const response = await fetch(`${API_URL}/respuestas_examen1`);
+    listaRespuestas.value = await response.json();
+  } catch (error) {
+    console.error("Error cargando respuestas:", error);
+  }
+}
+```
+
+**Backend retrieval with JOIN:**
+
+```python
+# main.py:348-357
+@app.get("/respuestas_examen1")
+async def leer_examen1():
+    conexion = conectar_bd()
+    if not conexion: raise HTTPException(500, "Error BD")
+    try:
+        cursor = conexion.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT r.*, u.nombre, u.apellidos 
+            FROM examen1 r 
+            LEFT JOIN usuarios u ON r.email = u.email 
+            ORDER BY r.fecha DESC
+        """)
+        return cursor.fetchall()
+    finally:
+        conexion.close()
+```
+
+**Display Format:**
+
+```vue
+<!-- examen1.vue:46-74 -->
+<div v-for="(item, index) in listaRespuestas" :key="index" 
+     class="bg-[#1e2736] p-6 rounded-xl border-l-4 border-blue-500 shadow-md">
+  <div class="flex justify-between items-start mb-4">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+        {{ obtenerIniciales(item.nombre, item.apellidos) }}
+      </div>
+      <div>
+        <span class="text-blue-400 font-bold text-base">
+          {{ item.nombre ? `${item.nombre} ${item.apellidos}` : item.email }}
+        </span>
+        <p class="text-gray-500 text-xs">{{ formatearFecha(item.fecha) }}</p>
+      </div>
+    </div>
+    <span class="bg-blue-900/50 text-blue-200 text-sm px-2 py-1 rounded">
+      Puntaje: {{ item.r6 }}
+    </span>
+  </div>
+  
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-300 mt-4 text-sm">
+    <div class="bg-white/5 p-3 rounded"><strong>P1:</strong> {{ item.r1 }}</div>
+    <div class="bg-white/5 p-3 rounded"><strong>P2:</strong> {{ item.r2 }}</div>
+    <div class="bg-white/5 p-3 rounded"><strong>P3:</strong> {{ item.r3 }}</div>
+    <div class="bg-white/5 p-3 rounded"><strong>Juego Oración:</strong> {{ item.r4 }}</div>
+    <div class="bg-white/5 p-3 rounded"><strong>Juego Parejas:</strong> {{ item.r5 }}</div>
+  </div>
+</div>
+```
+
+## API Reference
+
+### Examen 1 Endpoints
+
+<CodeGroup>
+```http POST /guardar_examen1
+POST /guardar_examen1
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "r1": "C) Son iguales en la niñez...",
+  "r2": "D) Porque aumenta conforme...",
+  "r3": "D",
+  "r4": "Correcto",
+  "r5": "4/4",
+  "r6": "8"
+}
+```
+
+```http GET /respuestas_examen1
+GET /respuestas_examen1
+
+Response: [
+  {
+    "email": "student@example.com",
+    "nombre": "María",
+    "apellidos": "García",
+    "r1": "C) Son iguales en la niñez...",
+    "r2": "D) Porque aumenta conforme...",
+    "r3": "D",
+    "r4": "Correcto",
+    "r5": "4/4",
+    "r6": "8",
+    "fecha": "2024-03-15T14:30:00Z"
+  }
+]
+```
+
+```http GET /verificar_examen1/{email}
+GET /verificar_examen1/student@example.com
+
+Response: {
+  "participo": true
+}
+```
+</CodeGroup>
+
+### Examen 2 Endpoints
+
+```http
+POST /guardar_examen2
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "r1": "Verdadero",
+  "r2": "En la vida adulta: La densidad mineral ósea cambia muy poco. | En la vejez: ...",
+  "r3": "El gráfico comienza arriba de cero porque...",
+  "r4": "Sí podríamos porque...",
+  "r5": "f . Vejez (70-90 años)",
+  "r6": "El gráfico muestra un valor máximo...",
+  "r7": "Para estar seguros necesitamos..."
+}
+
+GET /respuestas_examen2
+GET /verificar_examen2/{email}
+```
+
+<Tip>
+The gamified elements in Examen 1 (sentence ordering and matching) make abstract calculus concepts more engaging while still assessing understanding through immediate feedback and scoring.
+</Tip>

@@ -1,0 +1,550 @@
+---
+title: 'Database Deployment'
+description: 'PostgreSQL database setup and configuration'
+icon: 'database'
+---
+
+The Calculus Learning Platform uses PostgreSQL as its relational database, hosting all user data, forum responses, exam submissions, and feedback records.
+
+## Current Database Configuration
+
+The application is currently using a PostgreSQL database hosted on Render:
+
+```python
+host="dpg-d4f80d7pm1nc73eop5h0-a.oregon-postgres.render.com"
+database="database_7vyi"
+user="database_7vyi_user"
+password="EqKTvvDaJK6Ml5YoVYjnt4rLQmrxYIzo"
+port=5432
+sslmode="require"
+```
+
+<Warning>
+  These credentials are exposed in the source code. For production deployments, use environment variables and rotate these credentials immediately.
+</Warning>
+
+## Database Schema
+
+The database contains the following tables:
+
+### Users Table
+
+Stores student and teacher accounts:
+
+```sql
+CREATE TABLE usuarios (
+    email VARCHAR(255) PRIMARY KEY,
+    password VARCHAR(255) NOT NULL,
+    nombre VARCHAR(255),
+    apellidos VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+<Warning>
+  Passwords are currently stored in **plaintext**. This is a critical security vulnerability. Implement password hashing (bcrypt, argon2) before production use.
+</Warning>
+
+### Forum Tables
+
+The application has six forum tables for different learning activities:
+
+#### Forums 1, 2, 4, 6 (Standard Structure)
+
+```sql
+CREATE TABLE respuestas_foro1 (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) REFERENCES usuarios(email),
+    r1 TEXT DEFAULT '',
+    r2 TEXT DEFAULT '',
+    r3 TEXT DEFAULT '',
+    r4 TEXT DEFAULT '',
+    r5 TEXT DEFAULT '',
+    r6 TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE respuestas_foro2 (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) REFERENCES usuarios(email),
+    r1 TEXT DEFAULT '',
+    r2 TEXT DEFAULT '',
+    r3 TEXT DEFAULT '',
+    r4 TEXT DEFAULT '',
+    r5 TEXT DEFAULT '',
+    r6 TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE respuestas_foro4 (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) REFERENCES usuarios(email),
+    r1 TEXT DEFAULT '',
+    r2 TEXT DEFAULT '',
+    r3 TEXT DEFAULT '',
+    r4 TEXT DEFAULT '',
+    r5 TEXT DEFAULT '',
+    r6 TEXT DEFAULT '',
+    r7 TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE respuestas_foro6 (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) REFERENCES usuarios(email),
+    r1 TEXT DEFAULT '',
+    r2 TEXT DEFAULT '',
+    r3 TEXT DEFAULT '',
+    r4 TEXT DEFAULT '',
+    r5 TEXT DEFAULT '',
+    r6 TEXT DEFAULT '',
+    r7 TEXT DEFAULT '',
+    r8 TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+<Note>
+  Each forum has a different number of questions:
+  - Forum 1: 6 questions (r1-r6)
+  - Forum 2: 6 questions (r1-r6)
+  - Forum 4: 7 questions (r1-r7)
+  - Forum 6: 8 questions (r1-r8)
+</Note>
+
+#### Forum 3 (Complex Table Structure)
+
+Forum 3 has a special structure with a multi-row table (t6) in question 6:
+
+```sql
+CREATE TABLE respuestas_foro3 (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) REFERENCES usuarios(email),
+    r1 TEXT DEFAULT '',
+    r2 TEXT DEFAULT '',
+    r3 TEXT DEFAULT '',
+    r4 TEXT DEFAULT '',
+    r5 TEXT DEFAULT '',
+    -- Table 6: 7 rows × 3 columns
+    t6_r1_c1 TEXT DEFAULT '', t6_r1_c2 TEXT DEFAULT '', t6_r1_c3 TEXT DEFAULT '',
+    t6_r2_c1 TEXT DEFAULT '', t6_r2_c2 TEXT DEFAULT '', t6_r2_c3 TEXT DEFAULT '',
+    t6_r3_c1 TEXT DEFAULT '', t6_r3_c2 TEXT DEFAULT '', t6_r3_c3 TEXT DEFAULT '',
+    t6_r4_c1 TEXT DEFAULT '', t6_r4_c2 TEXT DEFAULT '', t6_r4_c3 TEXT DEFAULT '',
+    t6_r5_c1 TEXT DEFAULT '', t6_r5_c2 TEXT DEFAULT '', t6_r5_c3 TEXT DEFAULT '',
+    t6_r6_c1 TEXT DEFAULT '', t6_r6_c2 TEXT DEFAULT '', t6_r6_c3 TEXT DEFAULT '',
+    t6_r7_c1 TEXT DEFAULT '', t6_r7_c2 TEXT DEFAULT '', t6_r7_c3 TEXT DEFAULT '',
+    r7 TEXT DEFAULT '',
+    r8 TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Forum 5 (Image Upload Support)
+
+Forum 5 includes binary columns for image storage:
+
+```sql
+CREATE TABLE respuestas_foro5 (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) REFERENCES usuarios(email),
+    r2 TEXT DEFAULT '',
+    r4 TEXT DEFAULT '',
+    r5 TEXT DEFAULT '',
+    r6 TEXT DEFAULT '',
+    imagen_pregunta_3 BYTEA,
+    imagen_1 BYTEA,
+    imagen_2 BYTEA,
+    imagen_3 BYTEA,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+<Info>
+  Images are stored as `BYTEA` (binary data) and converted to base64 data URLs when retrieved by the API endpoint `/respuestas_en_foro_5`.
+</Info>
+
+### Exam Tables
+
+```sql
+CREATE TABLE examen1 (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) REFERENCES usuarios(email),
+    r1 TEXT DEFAULT '',
+    r2 TEXT DEFAULT '',
+    r3 TEXT DEFAULT '',
+    r4 TEXT DEFAULT '',
+    r5 TEXT DEFAULT '',
+    r6 TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE examen2 (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) REFERENCES usuarios(email),
+    r1 TEXT DEFAULT '',
+    r2 TEXT DEFAULT '',
+    r3 TEXT DEFAULT '',
+    r4 TEXT DEFAULT '',
+    r5 TEXT DEFAULT '',
+    r6 TEXT DEFAULT '',
+    r7 TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Feedback Table
+
+Stores teacher feedback on student activities:
+
+```sql
+CREATE TABLE feedback (
+    id SERIAL PRIMARY KEY,
+    email_alumno VARCHAR(255) REFERENCES usuarios(email),
+    actividad VARCHAR(100) NOT NULL,
+    comentario TEXT NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Setting Up a New Database
+
+### Render PostgreSQL
+
+<Steps>
+  <Step title="Create a database instance">
+    1. Log in to [Render](https://render.com)
+    2. Click "New +" → "PostgreSQL"
+    3. Choose a name and region
+    4. Select the free tier or appropriate plan
+    5. Click "Create Database"
+  </Step>
+
+  <Step title="Get connection details">
+    After creation, Render provides:
+    - Internal Database URL
+    - External Database URL
+    - Host, Database, User, Password
+    - Port (default: 5432)
+    
+    <Note>
+      Use the External URL for connections from your backend server.
+    </Note>
+  </Step>
+
+  <Step title="Configure SSL mode">
+    Render requires SSL connections:
+    
+    ```python
+    sslmode="require"
+    ```
+  </Step>
+</Steps>
+
+### Other PostgreSQL Providers
+
+<CodeGroup>
+```bash Railway
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login and create project
+railway login
+railway init
+
+# Add PostgreSQL
+railway add postgresql
+
+# Get connection details
+railway variables
+```
+
+```bash Supabase
+# Create project at supabase.com
+# Database is automatically provisioned
+
+# Connection string format:
+postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+```
+
+```bash AWS RDS
+# Using AWS CLI
+aws rds create-db-instance \
+    --db-instance-identifier calculus-db \
+    --db-instance-class db.t3.micro \
+    --engine postgres \
+    --master-username admin \
+    --master-user-password yourpassword \
+    --allocated-storage 20
+```
+</CodeGroup>
+
+## Database Migration
+
+To migrate your database schema:
+
+<Steps>
+  <Step title="Export schema from existing database">
+    ```bash
+    pg_dump -h dpg-d4f80d7pm1nc73eop5h0-a.oregon-postgres.render.com \
+            -U database_7vyi_user \
+            -d database_7vyi \
+            --schema-only > schema.sql
+    ```
+  </Step>
+
+  <Step title="Create tables in new database">
+    ```bash
+    psql -h your-new-host \
+         -U your-new-user \
+         -d your-new-database \
+         -f schema.sql
+    ```
+  </Step>
+
+  <Step title="Migrate data (optional)">
+    ```bash
+    # Export data
+    pg_dump -h old-host -U old-user -d old-db --data-only > data.sql
+    
+    # Import data
+    psql -h new-host -U new-user -d new-db -f data.sql
+    ```
+  </Step>
+</Steps>
+
+## Connection Configuration
+
+### Using Environment Variables
+
+Update your backend to use environment variables:
+
+```python back/main.py
+import os
+import psycopg2
+from psycopg2.pool import SimpleConnectionPool
+
+# Create connection pool for better performance
+db_pool = SimpleConnectionPool(
+    1, 20,  # min and max connections
+    host=os.getenv("DB_HOST"),
+    database=os.getenv("DB_NAME"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    port=int(os.getenv("DB_PORT", 5432)),
+    sslmode=os.getenv("DB_SSLMODE", "require")
+)
+
+def conectar_bd():
+    try:
+        return db_pool.getconn()
+    except Exception as e:
+        print(f"Error conectando a la BD: {e}")
+        return None
+
+def cerrar_conexion(conn):
+    db_pool.putconn(conn)
+```
+
+### SSL Mode Configuration
+
+PostgreSQL SSL modes:
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| `disable` | No SSL | Local development only |
+| `allow` | Try SSL, fallback to non-SSL | Not recommended |
+| `prefer` | Prefer SSL, fallback to non-SSL | Not recommended |
+| `require` | Require SSL, no certificate verification | **Render default** |
+| `verify-ca` | Require SSL, verify CA certificate | Enhanced security |
+| `verify-full` | Require SSL, verify CA and hostname | Maximum security |
+
+<Tip>
+  For Render databases, use `sslmode="require"`. For production with custom certificates, consider `verify-full`.
+</Tip>
+
+## Database Indexes
+
+Add indexes for better query performance:
+
+```sql
+-- Index on email for faster lookups
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+
+CREATE INDEX idx_foro1_email ON respuestas_foro1(email);
+CREATE INDEX idx_foro2_email ON respuestas_foro2(email);
+CREATE INDEX idx_foro3_email ON respuestas_foro3(email);
+CREATE INDEX idx_foro4_email ON respuestas_foro4(email);
+CREATE INDEX idx_foro5_email ON respuestas_foro5(email);
+CREATE INDEX idx_foro6_email ON respuestas_foro6(email);
+
+CREATE INDEX idx_examen1_email ON examen1(email);
+CREATE INDEX idx_examen2_email ON examen2(email);
+
+CREATE INDEX idx_feedback_email ON feedback(email_alumno);
+CREATE INDEX idx_feedback_actividad ON feedback(actividad);
+
+-- Index on fecha for faster sorting
+CREATE INDEX idx_foro1_fecha ON respuestas_foro1(fecha DESC);
+CREATE INDEX idx_foro2_fecha ON respuestas_foro2(fecha DESC);
+CREATE INDEX idx_foro3_fecha ON respuestas_foro3(fecha DESC);
+CREATE INDEX idx_foro4_fecha ON respuestas_foro4(fecha DESC);
+CREATE INDEX idx_foro5_fecha ON respuestas_foro5(fecha DESC);
+CREATE INDEX idx_foro6_fecha ON respuestas_foro6(fecha DESC);
+```
+
+## Backup and Recovery
+
+### Automated Backups (Render)
+
+Render provides automated daily backups on paid plans. To manually backup:
+
+```bash
+pg_dump -h dpg-d4f80d7pm1nc73eop5h0-a.oregon-postgres.render.com \
+        -U database_7vyi_user \
+        -d database_7vyi \
+        -F c -f backup_$(date +%Y%m%d).dump
+```
+
+### Restore from Backup
+
+```bash
+pg_restore -h your-host \
+           -U your-user \
+           -d your-database \
+           -v backup_20260305.dump
+```
+
+### Custom Backup Script
+
+```bash backup.sh
+#!/bin/bash
+BACKUP_DIR="/backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+FILENAME="calculus_db_${DATE}.sql.gz"
+
+pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME | gzip > ${BACKUP_DIR}/${FILENAME}
+
+# Keep only last 7 days
+find ${BACKUP_DIR} -name "calculus_db_*.sql.gz" -mtime +7 -delete
+
+echo "Backup completed: ${FILENAME}"
+```
+
+## Monitoring and Maintenance
+
+### Connection Monitoring
+
+```sql
+-- Check active connections
+SELECT 
+    datname,
+    usename,
+    application_name,
+    client_addr,
+    state,
+    query_start
+FROM pg_stat_activity
+WHERE datname = 'database_7vyi';
+```
+
+### Database Size
+
+```sql
+-- Check database size
+SELECT 
+    pg_size_pretty(pg_database_size('database_7vyi')) as db_size;
+
+-- Check table sizes
+SELECT 
+    schemaname,
+    tablename,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+```
+
+### Vacuum and Analyze
+
+Regularly optimize database performance:
+
+```sql
+-- Analyze tables for query planner
+ANALYZE;
+
+-- Vacuum to reclaim space
+VACUUM;
+
+-- Full vacuum (requires table lock)
+VACUUM FULL;
+```
+
+## Security Considerations
+
+<Steps>
+  <Step title="Credential management">
+    - Store credentials in environment variables
+    - Use secrets management (AWS Secrets Manager, HashiCorp Vault)
+    - Rotate credentials regularly
+    - Never commit credentials to version control
+  </Step>
+
+  <Step title="Password security">
+    - Implement password hashing (bcrypt, argon2)
+    - Add salt to prevent rainbow table attacks
+    - Enforce password strength requirements
+    - Consider multi-factor authentication
+  </Step>
+
+  <Step title="Access control">
+    - Create separate database users for different services
+    - Grant minimum required privileges
+    - Use read-only users for reporting/analytics
+    - Restrict network access with firewall rules
+  </Step>
+
+  <Step title="Data encryption">
+    - Use SSL/TLS for connections (already required)
+    - Consider encrypting sensitive columns
+    - Enable database encryption at rest (if supported)
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Connection Refused Errors
+
+- Verify the host and port are correct
+- Check if your IP is whitelisted (some providers restrict access)
+- Ensure SSL mode matches server requirements
+
+### SSL/TLS Errors
+
+```python
+# If you see SSL certificate errors, try:
+conn = psycopg2.connect(
+    ...,
+    sslmode="require",
+    sslrootcert="/path/to/ca-certificate.crt"  # if needed
+)
+```
+
+### Performance Issues
+
+- Add indexes on frequently queried columns
+- Use connection pooling to reduce overhead
+- Analyze slow queries with `EXPLAIN ANALYZE`
+- Consider upgrading database instance size
+
+### Out of Connections
+
+```python
+# Implement connection pooling
+from psycopg2.pool import SimpleConnectionPool
+
+pool = SimpleConnectionPool(minconn=1, maxconn=20, ...)
+```
+
+<Info>
+  The current database implementation creates a new connection for each request and closes it immediately. For production, implement connection pooling for better performance.
+</Info>

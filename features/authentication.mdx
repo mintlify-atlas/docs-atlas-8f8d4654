@@ -1,0 +1,353 @@
+---
+title: Authentication System
+description: User authentication with role-based access control for students and professors
+---
+
+The Calculus Learning Platform implements a dual-mode authentication system supporting both student and professor accounts with role-based routing.
+
+## Overview
+
+The authentication system is built with Vue 3 on the frontend (`Login.vue`) and FastAPI on the backend (`main.py`), featuring:
+
+- User registration and login
+- Role-based access control (student vs professor)
+- Session persistence with localStorage
+- Special admin account handling
+
+## User Registration Flow
+
+### Frontend Registration Form
+
+The registration form collects four fields from new users:
+
+```vue
+<!-- Login.vue -->
+<input v-model="nombre" type="text" placeholder="Nombre" />
+<input v-model="apellido" type="text" placeholder="Apellidos" />
+<input v-model="email" type="email" placeholder="Correo electrónico" />
+<input v-model="password" type="password" placeholder="Crea una contraseña" />
+```
+
+<Steps>
+  <Step title="User Submits Form">
+    When the user clicks "Registrarse", the form validates all fields are filled.
+  </Step>
+  
+  <Step title="API Request Sent">
+    Data is sent to `/registrar` endpoint:
+    ```javascript
+    const respuesta = await fetch(`${urlBase}/registrar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value,
+        nombre: nombre.value,
+        apellidos: apellido.value
+      })
+    });
+    ```
+  </Step>
+  
+  <Step title="Database Record Created">
+    The backend inserts the user into the `usuarios` table:
+    ```python
+    # main.py:124-132
+    query = "INSERT INTO usuarios (email, password, nombre, apellidos) VALUES (%s, %s, %s, %s)"
+    cursor.execute(query, (datos.email, datos.password, datos.nombre, datos.apellidos))
+    conexion.commit()
+    return {"mensaje": "Usuario creado", "exito": True}
+    ```
+  </Step>
+  
+  <Step title="User Redirected to Login">
+    After successful registration, the mode switches to login:
+    ```javascript
+    // Login.vue:336-339
+    setTimeout(() => {
+      esRegistro.value = false;
+      mensaje.value = "Cuenta creada, Ahora inicia sesión.";
+    }, 1500);
+    ```
+  </Step>
+</Steps>
+
+<Info>
+Duplicate email registration is prevented by the database constraint. The backend returns `{"mensaje": "El usuario ya existe", "exito": false}` if the email already exists.
+</Info>
+
+## Login Mechanism
+
+### Standard Login Process
+
+```javascript
+// Login.vue:281-291
+const endpoint = esRegistro.value ? "/registrar" : "/login";
+const respuesta = await fetch(`${urlBase}${endpoint}`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: email.value,
+    password: password.value
+  })
+});
+```
+
+The backend validates credentials against the database:
+
+```python
+# main.py:142-163
+@app.post("/login")
+async def login(datos: UsuarioRegistro):
+    cursor = conexion.cursor(cursor_factory=RealDictCursor)
+    query = "SELECT email, nombre, apellidos FROM usuarios WHERE email = %s AND password = %s"
+    cursor.execute(query, (datos.email, datos.password))
+    usuario = cursor.fetchone()
+    
+    if usuario:
+        return {
+            "mensaje": "Login correcto",
+            "exito": True,
+            "usuario": usuario['email'],
+            "nombre": usuario['nombre'],
+            "apellidos": usuario['apellidos']
+        }
+    else:
+        return {"mensaje": "Credenciales incorrectas", "exito": False}
+```
+
+<Warning>
+Passwords are stored in plain text in the database. This is a security vulnerability that should be addressed in production by implementing password hashing (e.g., bcrypt).
+</Warning>
+
+## Role-Based Access Control
+
+### Professor Account Detection
+
+The system identifies professors using a hardcoded email check:
+
+```javascript
+// Login.vue:298-307
+const CORREO_PROFE = "admin@gmail.com";
+
+if (email.value.toLowerCase() === CORREO_PROFE.toLowerCase()) {
+  localStorage.setItem("usuario", datos.usuario);
+  mensaje.value = "Bienvenido, Profesor.";
+  setTimeout(() => {
+    router.push("/panel-profesor");
+  }, 1000);
+  return;
+}
+```
+
+### Student Account Routing
+
+Non-professor accounts are routed to the student experience:
+
+```javascript
+// Login.vue:309-331
+if (!esRegistro.value) {
+  localStorage.setItem("usuario", datos.usuario);
+  localStorage.setItem("email", email.value);
+  
+  const yaVioBienvenida = localStorage.getItem(`visto_bienvenida_${datos.usuario}`);
+  
+  setTimeout(() => {
+    if (yaVioBienvenida === 'true') {
+      router.push("/foro1");  // Returning student
+    } else {
+      router.push("/bienvenida");  // First-time student
+    }
+  }, 1000);
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="Professor Role" icon="chalkboard-user">
+    - Email: `admin@gmail.com`
+    - Route: `/panel-profesor`
+    - Access: All student submissions
+    - Capability: Provide feedback
+  </Card>
+  
+  <Card title="Student Role" icon="graduation-cap">
+    - Email: Any other email
+    - Route: `/bienvenida` or `/foro1`
+    - Access: Own submissions only
+    - Capability: Submit forum/exam responses
+  </Card>
+</CardGroup>
+
+## Session Management
+
+### localStorage Implementation
+
+User sessions are maintained using browser localStorage:
+
+<CodeGroup>
+```javascript Login Storage
+// Login.vue:301, 312-313
+localStorage.setItem("usuario", datos.usuario);
+localStorage.setItem("email", email.value);
+```
+
+```javascript Session Check Example
+// examen1.vue:417-420
+const email = localStorage.getItem("usuario");
+if (!email) {
+  cargandoEstado.value = false;
+  return;
+}
+```
+
+```javascript Welcome Flag
+// Login.vue:320
+const yaVioBienvenida = localStorage.getItem(`visto_bienvenida_${datos.usuario}`);
+```
+</CodeGroup>
+
+### Session Keys Used
+
+| Key | Purpose | Example Value |
+|-----|---------|---------------|
+| `usuario` | User's email identifier | `"student@example.com"` |
+| `email` | Duplicate email storage | `"student@example.com"` |
+| `visto_bienvenida_{email}` | First-time user flag | `"true"` |
+
+<Tip>
+The system uses the `usuario` key to identify the logged-in user throughout the application. All forum and exam submissions reference this value.
+</Tip>
+
+## Form Validation
+
+Client-side validation ensures data integrity:
+
+```javascript
+// Login.vue:239-266
+function validarCampos() {
+  if (esRegistro.value) {
+    if (!nombre.value?.trim()) {
+      mensaje.value = "Por favor ingresa tu nombre";
+      tipoMensaje.value = "error";
+      return false;
+    }
+    if (!apellido.value?.trim()) {
+      mensaje.value = "Por favor ingresa tus apellidos";
+      tipoMensaje.value = "error";
+      return false;
+    }
+  }
+  
+  if (!email.value?.trim()) {
+    mensaje.value = "Por favor ingresa tu correo electrónico";
+    tipoMensaje.value = "error";
+    return false;
+  }
+  
+  if (!password.value) {
+    mensaje.value = "Por favor ingresa tu contraseña";
+    tipoMensaje.value = "error";
+    return false;
+  }
+  
+  return true;
+}
+```
+
+## Error Handling
+
+The authentication system provides user-friendly error messages:
+
+```javascript
+// Login.vue:294-351
+const datos = await respuesta.json();
+
+if (datos.exito) {
+  tipoMensaje.value = "exito";
+  mensaje.value = datos.mensaje;
+  // ... handle success
+} else {
+  tipoMensaje.value = "error";
+  mensaje.value = datos.mensaje;  // "Credenciales incorrectas" or "El usuario ya existe"
+}
+```
+
+<Accordion title="Common Error Messages">
+- **"Por favor ingresa tu correo electrónico"** - Email field is empty
+- **"Por favor ingresa tu contraseña"** - Password field is empty
+- **"Por favor ingresa tu nombre"** - Name field is empty (registration only)
+- **"Por favor ingresa tus apellidos"** - Last name field is empty (registration only)
+- **"Credenciales incorrectas"** - Invalid email/password combination
+- **"El usuario ya existe"** - Email already registered
+- **"Error conectando con el servidor"** - Backend connection failure
+</Accordion>
+
+## API Endpoints
+
+### Registration Endpoint
+
+```python
+# main.py:123-140
+@app.post("/registrar")
+async def registrar(datos: UsuarioRegistro):
+    conexion = conectar_bd()
+    if not conexion: raise HTTPException(500, "Error BD")
+    try:
+        cursor = conexion.cursor()
+        query = "INSERT INTO usuarios (email, password, nombre, apellidos) VALUES (%s, %s, %s, %s)"
+        cursor.execute(query, (datos.email, datos.password, datos.nombre, datos.apellidos))
+        conexion.commit()
+        return {"mensaje": "Usuario creado", "exito": True}
+    except psycopg2.IntegrityError:
+        conexion.rollback()
+        return {"mensaje": "El usuario ya existe", "exito": False}
+```
+
+### Login Endpoint
+
+```python
+# main.py:142-163
+@app.post("/login")
+async def login(datos: UsuarioRegistro):
+    conexion = conectar_bd()
+    if not conexion: raise HTTPException(500, "Error BD")
+    try:
+        cursor = conexion.cursor(cursor_factory=RealDictCursor)
+        query = "SELECT email, nombre, apellidos FROM usuarios WHERE email = %s AND password = %s"
+        cursor.execute(query, (datos.email, datos.password))
+        usuario = cursor.fetchone()
+        
+        if usuario:
+            return {
+                "mensaje": "Login correcto",
+                "exito": True,
+                "usuario": usuario['email'],
+                "nombre": usuario['nombre'],
+                "apellidos": usuario['apellidos']
+            }
+        else:
+            return {"mensaje": "Credenciales incorrectas", "exito": False}
+    finally:
+        conexion.close()
+```
+
+## Security Considerations
+
+<Warning>
+**Security Vulnerabilities in Current Implementation:**
+
+1. **No Password Hashing** - Passwords stored in plain text
+2. **No HTTPS Enforcement** - Credentials transmitted without encryption verification
+3. **No Session Expiration** - localStorage tokens never expire
+4. **No CSRF Protection** - No token-based request validation
+5. **Hardcoded Admin Email** - Single point of failure for professor access
+</Warning>
+
+<Note>
+For production deployment, implement:
+- Password hashing (bcrypt, argon2)
+- JWT tokens with expiration
+- HTTPS enforcement
+- Multi-factor authentication
+- Role-based permissions in database
+</Note>

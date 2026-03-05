@@ -1,0 +1,235 @@
+---
+title: 'User Login'
+api: 'POST /login'
+description: 'Authenticate a user and retrieve their profile information'
+---
+
+## Endpoint
+
+```
+POST /login
+```
+
+Authenticates a user by email and password, returning their profile information on success.
+
+## Request Body
+
+The request uses the `UsuarioRegistro` Pydantic model (only `email` and `password` fields are used):
+
+<ParamField body="email" type="string" required>
+  User's email address
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password
+</ParamField>
+
+<Note>
+The `nombre` and `apellidos` fields from `UsuarioRegistro` are ignored during login.
+</Note>
+
+## Response
+
+### Success Response
+
+<ResponseField name="mensaje" type="string">
+  Success message: `"Login correcto"`
+</ResponseField>
+
+<ResponseField name="exito" type="boolean">
+  Always `true` for successful login
+</ResponseField>
+
+<ResponseField name="usuario" type="string">
+  User's email address
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  User's first name (may be `null`)
+</ResponseField>
+
+<ResponseField name="apellidos" type="string">
+  User's last name (may be `null`)
+</ResponseField>
+
+```json
+{
+  "mensaje": "Login correcto",
+  "exito": true,
+  "usuario": "student@example.com",
+  "nombre": "Juan",
+  "apellidos": "García"
+}
+```
+
+### Failed Response
+
+<ResponseField name="mensaje" type="string">
+  Error message: `"Credenciales incorrectas"`
+</ResponseField>
+
+<ResponseField name="exito" type="boolean">
+  Always `false` for failed login
+</ResponseField>
+
+```json
+{
+  "mensaje": "Credenciales incorrectas",
+  "exito": false
+}
+```
+
+## Special Cases
+
+### Admin User
+
+The system has special handling for the admin account (`admin@gmail.com`). This user is:
+- Excluded from student lists
+- Exempt from exam participation tracking
+- Returned empty data for student activity endpoints
+
+Admin login works the same as regular users but with elevated privileges in other endpoints.
+
+## Examples
+
+### cURL
+
+```bash
+curl -X POST http://localhost:8000/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "student@example.com",
+    "password": "securepass123"
+  }'
+```
+
+### Python (requests)
+
+```python
+import requests
+
+url = "http://localhost:8000/login"
+credentials = {
+    "email": "student@example.com",
+    "password": "securepass123"
+}
+
+response = requests.post(url, json=credentials)
+result = response.json()
+
+if result["exito"]:
+    print(f"Welcome, {result['nombre']} {result['apellidos']}!")
+    print(f"Email: {result['usuario']}")
+    # Store user session data
+    user_data = {
+        "email": result["usuario"],
+        "nombre": result["nombre"],
+        "apellidos": result["apellidos"]
+    }
+else:
+    print(f"Login failed: {result['mensaje']}")
+```
+
+### JavaScript (axios)
+
+```javascript
+const axios = require('axios');
+
+const loginUser = async (email, password) => {
+  try {
+    const response = await axios.post('http://localhost:8000/login', {
+      email: email,
+      password: password
+    });
+    
+    if (response.data.exito) {
+      console.log(`Welcome, ${response.data.nombre} ${response.data.apellidos}!`);
+      
+      // Store in session/localStorage
+      const userData = {
+        email: response.data.usuario,
+        nombre: response.data.nombre,
+        apellidos: response.data.apellidos
+      };
+      
+      return userData;
+    } else {
+      console.error(`Login failed: ${response.data.mensaje}`);
+      return null;
+    }
+  } catch (error) {
+    console.error('Request failed:', error.message);
+    return null;
+  }
+};
+
+// Usage
+loginUser('student@example.com', 'securepass123');
+```
+
+### React Example
+
+```javascript
+import { useState } from 'react';
+import axios from 'axios';
+
+function LoginForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const response = await axios.post('http://localhost:8000/login', {
+        email,
+        password
+      });
+      
+      if (response.data.exito) {
+        // Store user data and redirect
+        localStorage.setItem('user', JSON.stringify({
+          email: response.data.usuario,
+          nombre: response.data.nombre,
+          apellidos: response.data.apellidos
+        }));
+        window.location.href = '/dashboard';
+      } else {
+        setError(response.data.mensaje);
+      }
+    } catch (err) {
+      setError('Error connecting to server');
+    }
+  };
+
+  return (
+    <form onSubmit={handleLogin}>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        required
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        required
+      />
+      {error && <div className="error">{error}</div>}
+      <button type="submit">Login</button>
+    </form>
+  );
+}
+```
+
+## Implementation Notes
+
+- Uses SQL query with plain text password comparison (⚠️ security concern)
+- Returns `RealDictCursor` results for easy JSON serialization
+- No session token or JWT is generated - client must store user data
+- Database connection is properly closed in the `finally` block
+- HTTP 500 error is raised if database connection fails

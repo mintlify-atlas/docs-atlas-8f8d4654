@@ -1,0 +1,581 @@
+---
+title: Forum System
+description: Interactive forum activities teaching calculus derivatives through progressive learning
+---
+
+The platform features 6 sequential forum activities (Foro 1-6) that guide students through understanding derivatives using the real-world context of bone mineral density (DMO) and age.
+
+## Overview
+
+Each forum presents educational content, questions, and activities that students complete once. Submissions are stored in the database and shared with the class for collaborative learning.
+
+<CardGroup cols={3}>
+  <Card title="Foro 1" icon="bone">
+    Introduction to Bone Mineral Density (DMO)
+  </Card>
+  <Card title="Foro 2" icon="table">
+    Data Analysis and Tables
+  </Card>
+  <Card title="Foro 3" icon="chart-line">
+    Modeling DMO vs Age
+  </Card>
+  <Card title="Foro 4" icon="calculator">
+    Algebraic Expressions
+  </Card>
+  <Card title="Foro 5" icon="percent">
+    Average Rate of Change
+  </Card>
+  <Card title="Foro 6" icon="arrow-trend-up">
+    Instantaneous Rate of Change
+  </Card>
+</CardGroup>
+
+## Forum Configuration
+
+The backend defines forum metadata dynamically:
+
+```python
+# main.py:91-96
+FOROS = [
+    {"id": 1, "nombre": "respuestas_foro1", "preguntas": 6, "ruta": "foro1"},
+    {"id": 2, "nombre": "respuestas_foro2", "preguntas": 6, "ruta": "foro2"},
+    {"id": 4, "nombre": "respuestas_foro4", "preguntas": 7, "ruta": "foro4"},
+    {"id": 6, "nombre": "respuestas_foro6", "preguntas": 8, "ruta": "foro6"}
+]
+```
+
+<Info>
+Foro 3 and Foro 5 are handled separately due to special requirements (complex tables and image uploads).
+</Info>
+
+## Forum Structure and Content
+
+### Foro 1: Introduction to DMO
+
+**Learning Objectives:**
+- Understand what bone mineral density (DMO) is
+- Learn how DMO is measured
+- Explore factors affecting bone health
+- Investigate relationship between age and DMO
+
+**Questions (6 total):**
+
+```vue
+<!-- foro_1.vue -->
+<div>
+  <h3>1.- Explica en qué consiste la densidad mineral ósea (DMO) y cómo se mide...</h3>
+  <textarea v-model="r1" rows="3" placeholder="Escribe tu análisis aquí..."></textarea>
+</div>
+
+<div>
+  <h3>2.- ¿Qué factores consideras que influyen en una buena salud ósea?</h3>
+  <textarea v-model="r2" rows="3" placeholder="Tu respuesta..."></textarea>
+</div>
+
+<div>
+  <h3>3. ¿Consideras que la edad y la DMO pueden estar relacionadas...?</h3>
+  <textarea v-model="r3" rows="3" placeholder="Justifica tu respuesta..."></textarea>
+</div>
+```
+
+<Accordion title="View Full Foro 1 Content">
+Foro 1 includes educational material about:
+- What bone mineral density measures (mg/cm²)
+- The DEXA/DEX test for measuring bone calcium and phosphorus
+- How bones accumulate minerals from birth to age 35
+- The link to osteoporosis diagnosis
+- Research articles about age-related bone density changes
+</Accordion>
+
+### Foro 3: Modeling with Tables (Special)
+
+Foro 3 requires students to work with a complex data table from a research article:
+
+```vue
+<!-- foro_3.vue:86-150 -->
+<table class="w-full text-sm text-left text-gray-400">
+  <thead class="text-xs text-white uppercase bg-blue-900/50">
+    <tr>
+      <th>Edad</th>
+      <th>Mujeres</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>15</td><td>0.847</td></tr>
+    <tr><td>25</td><td>0.89</td></tr>
+    <tr><td>35</td><td>0.896</td></tr>
+    <tr><td>45</td><td>0.913</td></tr>
+    <!-- ... more rows -->
+  </tbody>
+</table>
+```
+
+**Special Feature:** Students fill in a complex table with multiple rows and columns:
+
+```python
+# main.py:54-64 - Special model for Foro 3
+class RespuestaForo_3(BaseModel):
+    email: str
+    r1: str = ""; r2: str = ""; r3: str = ""; r4: str = ""; r5: str = ""
+    t6_r1_c1: str = ""; t6_r1_c2: str = ""; t6_r1_c3: str = ""
+    t6_r2_c1: str = ""; t6_r2_c2: str = ""; t6_r2_c3: str = ""
+    t6_r3_c1: str = ""; t6_r3_c2: str = ""; t6_r3_c3: str = ""
+    # ... 7 rows x 3 columns = 21 table fields
+    r7: str = ""; r8: str = ""
+```
+
+### Foro 5: Rate of Change with Images (Special)
+
+Foro 5 teaches average rate of change and includes **image upload functionality**:
+
+```vue
+<!-- foro_5.vue:37-53 -->
+<p class="text-gray-300 text-base mb-6">
+  1. A la tabla de año en año, que se construyó en el
+  <a href="https://docs.google.com/spreadsheets/d/..." target="_blank">
+    DRIVE (foro 4)
+  </a>, le vamos a agregar una tercera columna para obtener la
+  razón promedio de cambio (RPC) para puntos consecutivos.
+  <tresfotos @updateFotos="recibirTresFotos" />
+</p>
+```
+
+**Image Handling:**
+
+```python
+# main.py:534-574
+@app.post("/guardar_foro5/{email}")
+async def guardar_foro5(
+    email: str,
+    r2: str = Form(""),
+    r3: str = Form(""),
+    r4: str = Form(""),
+    r5: str = Form(""),
+    r6: str = Form(""),
+    imagen_pregunta_3: UploadFile = File(None),
+    imagenes: List[UploadFile] = File([])
+):
+    # Read image files
+    contenido_p3 = await imagen_pregunta_3.read() if imagen_pregunta_3 else None
+    
+    img1 = img2 = img3 = None
+    if len(imagenes) > 0:
+        img1 = await imagenes[0].read()
+    if len(imagenes) > 1:
+        img2 = await imagenes[1].read()
+    if len(imagenes) > 2:
+        img3 = await imagenes[2].read()
+    
+    # Store as binary in database
+    query = """INSERT INTO respuestas_foro5 (
+        email, r2, r4, r5, r6,
+        imagen_pregunta_3, imagen_1, imagen_2, imagen_3
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+    
+    cursor.execute(query, (email, r2, r4, r5, r6, contenido_p3, img1, img2, img3))
+```
+
+<Warning>
+Foro 3 and Foro 5 use custom endpoints (`/guardar_en_foro_3`, `/guardar_foro5/{email}`) instead of the dynamic routing pattern used by other forums.
+</Warning>
+
+## Forum Submission Flow
+
+<Steps>
+  <Step title="Check Participation Status">
+    When a student opens a forum, the system checks if they've already submitted:
+    ```javascript
+    // foro_1.vue example
+    const response = await fetch(`${API_URL}/verificar_foro1/${email}`);
+    const data = await response.json();
+    if (data.participo) {
+      usuarioYaParticipo.value = true;
+    }
+    ```
+  </Step>
+  
+  <Step title="Display Form or Results">
+    - If **not participated**: Show question form
+    - If **already participated**: Show all student submissions (read-only)
+  </Step>
+  
+  <Step title="Student Submits Answers">
+    Form data is collected and sent to the API:
+    ```javascript
+    const payload = {
+      email: localStorage.getItem("usuario"),
+      r1: r1.value,
+      r2: r2.value,
+      r3: r3.value,
+      // ... all responses
+    };
+    
+    await fetch(`${API_URL}/guardar_foro1`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    ```
+  </Step>
+  
+  <Step title="Backend Saves to Database">
+    The backend performs duplicate check and inserts:
+    ```python
+    # main.py:195-230 (Dynamic handler)
+    @app.post("/guardar_foro{foro_id}")
+    async def guardar_respuestas_dinamico(foro_id: int, datos: RespuestasForo):
+        # Check if already submitted
+        cursor.execute(f"SELECT COUNT(*) FROM {foro['nombre']} WHERE email = %s", (datos.email,))
+        if cursor.fetchone()[0] > 0:
+            return {"mensaje": "Ya has participado", "exito": True}
+        
+        # Build dynamic INSERT query
+        campos = ["email"]
+        valores = [datos.email]
+        for i in range(1, foro['preguntas'] + 1):
+            campo = f"r{i}"
+            campos.append(campo)
+            valores.append(getattr(datos, campo, ""))
+        
+        query = f"INSERT INTO {foro['nombre']} ({campos_str}) VALUES ({placeholders})"
+        cursor.execute(query, tuple(valores))
+        conexion.commit()
+    ```
+  </Step>
+  
+  <Step title="Display All Submissions">
+    After submission, the student sees all class responses:
+    ```python
+    # main.py:232-256
+    @app.get("/respuestas_foro{foro_id}")
+    async def obtener_respuestas_dinamico(foro_id: int):
+        query = f"""
+            SELECT r.*, u.nombre, u.apellidos
+            FROM {foro['nombre']} r
+            LEFT JOIN usuarios u ON r.email = u.email
+            ORDER BY r.fecha DESC
+        """
+        cursor.execute(query)
+        return cursor.fetchall()
+    ```
+  </Step>
+</Steps>
+
+## Dynamic Forum Routing
+
+The backend handles most forums (1, 2, 4, 6) with dynamic endpoints:
+
+```python
+# main.py:98-102
+def get_foro_config(foro_id: int):
+    for foro in FOROS:
+        if foro["id"] == foro_id:
+            return foro
+    return None
+```
+
+**Dynamic Endpoints:**
+
+| Endpoint | Method | Purpose |
+|----------|--------|----------|
+| `/guardar_foro{foro_id}` | POST | Submit forum responses |
+| `/respuestas_foro{foro_id}` | GET | Retrieve all submissions |
+| `/verificar_foro{foro_id}/{email}` | GET | Check if user participated |
+
+<CodeGroup>
+```python Save Response (Dynamic)
+# main.py:195-230
+@app.post("/guardar_foro{foro_id}")
+async def guardar_respuestas_dinamico(foro_id: int, datos: RespuestasForo):
+    foro = get_foro_config(foro_id)
+    if not foro: raise HTTPException(404, "Foro no encontrado")
+    
+    # Duplicate check
+    cursor.execute(f"SELECT COUNT(*) FROM {foro['nombre']} WHERE email = %s", (datos.email,))
+    if cursor.fetchone()[0] > 0:
+        return {"mensaje": "Ya has participado", "exito": True}
+    
+    # Dynamic INSERT
+    campos = ["email"]
+    valores = [datos.email]
+    for i in range(1, foro['preguntas'] + 1):
+        campo = f"r{i}"
+        campos.append(campo)
+        valores.append(getattr(datos, campo, ""))
+    
+    query = f"INSERT INTO {foro['nombre']} ({campos_str}) VALUES ({placeholders})"
+    cursor.execute(query, tuple(valores))
+    conexion.commit()
+```
+
+```python Verify Participation (Dynamic)
+# main.py:258-271
+@app.get("/verificar_foro{foro_id}/{email}")
+async def verificar_participacion_dinamico(foro_id: int, email: str):
+    foro = get_foro_config(foro_id)
+    if not foro: return {"participo": False}
+    
+    cursor.execute(f"SELECT COUNT(*) FROM {foro['nombre']} WHERE email = %s", (email,))
+    return {"participo": cursor.fetchone()[0] > 0}
+```
+</CodeGroup>
+
+## Special Handling: Foro 3
+
+Foro 3 has a dedicated endpoint due to its complex table structure:
+
+```python
+# main.py:277-305
+@app.post("/guardar_en_foro_3")
+async def guardar_foro3(datos: RespuestaForo_3):
+    conexion = conectar_bd()
+    if not conexion: raise HTTPException(500, "Error BD")
+    try:
+        cursor = conexion.cursor()
+        cursor.execute("SELECT COUNT(*) FROM respuestas_foro3 WHERE email = %s", (datos.email,))
+        if cursor.fetchone()[0] > 0: 
+            return {"mensaje": "Ya participaste", "exito": True}
+        
+        query = """INSERT INTO respuestas_foro3
+            (email, r1, r2, r3, r4, r5, 
+             t6_r1_c1, t6_r1_c2, t6_r1_c3,
+             t6_r2_c1, t6_r2_c2, t6_r2_c3,
+             t6_r3_c1, t6_r3_c2, t6_r3_c3,
+             t6_r4_c1, t6_r4_c2, t6_r4_c3,
+             t6_r5_c1, t6_r5_c2, t6_r5_c3,
+             t6_r6_c1, t6_r6_c2, t6_r6_c3,
+             t6_r7_c1, t6_r7_c2, t6_r7_c3,
+             r7, r8)
+            VALUES (%s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """
+        cursor.execute(query, (datos.email, datos.r1, datos.r2, ...))
+        conexion.commit()
+        return {"mensaje": "Guardado", "exito": True}
+```
+
+**Retrieval with JOIN:**
+
+```python
+# main.py:307-316
+@app.get("/respuestas_en_foro_3")
+async def leer_foro3():
+    cursor.execute("""
+        SELECT r.*, u.nombre, u.apellidos 
+        FROM respuestas_foro3 r 
+        LEFT JOIN usuarios u ON r.email = u.email 
+        ORDER BY r.fecha DESC
+    """)
+    return cursor.fetchall()
+```
+
+## Special Handling: Foro 5 (Images)
+
+Foro 5 uses `multipart/form-data` to handle image uploads:
+
+```python
+# main.py:534-574
+@app.post("/guardar_foro5/{email}")
+async def guardar_foro5(
+    email: str,
+    r2: str = Form(""),
+    r3: str = Form(""),
+    r4: str = Form(""),
+    r5: str = Form(""),
+    r6: str = Form(""),
+    imagen_pregunta_3: UploadFile = File(None),
+    imagenes: List[UploadFile] = File([])
+):
+    # Read uploaded files
+    contenido_p3 = await imagen_pregunta_3.read() if imagen_pregunta_3 else None
+    
+    img1 = img2 = img3 = None
+    if len(imagenes) > 0:
+        img1 = await imagenes[0].read()
+    if len(imagenes) > 1:
+        img2 = await imagenes[1].read()
+    if len(imagenes) > 2:
+        img3 = await imagenes[2].read()
+    
+    # Store binary data in PostgreSQL
+    query = """INSERT INTO respuestas_foro5 (
+        email, r2, r4, r5, r6,
+        imagen_pregunta_3, imagen_1, imagen_2, imagen_3
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+    
+    cursor.execute(query, (email, r2, r4, r5, r6, contenido_p3, img1, img2, img3))
+```
+
+**Image Retrieval with Base64 Encoding:**
+
+```python
+# main.py:592-644
+@app.get("/respuestas_en_foro_5")
+async def leer_foro5():
+    cursor.execute("""SELECT r.*, u.nombre, u.apellidos 
+        FROM respuestas_foro5 r LEFT JOIN usuarios u ON r.email = u.email
+        ORDER BY r.id DESC""")
+    respuestas = cursor.fetchall()
+    
+    for resp in respuestas:
+        # Convert binary image data to base64
+        if resp.get('imagen_pregunta_3'):
+            valor = resp['imagen_pregunta_3']
+            if isinstance(valor, memoryview):
+                valor = bytes(valor)
+            encoded = base64.b64encode(valor).decode('utf-8')
+            resp['imagen_pregunta_3_url'] = f"data:image/jpeg;base64,{encoded}"
+            del resp['imagen_pregunta_3']
+        
+        # Convert the 3 table images
+        for i in range(1, 4):
+            campo = f'imagen_{i}'
+            if resp.get(campo):
+                valor = resp[campo]
+                if isinstance(valor, memoryview):
+                    valor = bytes(valor)
+                encoded = base64.b64encode(valor).decode('utf-8')
+                resp[f'{campo}_url'] = f"data:image/jpeg;base64,{encoded}"
+                del resp[campo]
+    
+    return respuestas
+```
+
+<Info>
+Images are stored as binary `BYTEA` in PostgreSQL and converted to base64 data URLs when retrieved for display in the browser.
+</Info>
+
+## One-Time Submission Enforcement
+
+All forums prevent duplicate submissions:
+
+<CodeGroup>
+```python Backend Check
+# main.py:206-208 (Dynamic forums)
+cursor.execute(f"SELECT COUNT(*) FROM {foro['nombre']} WHERE email = %s", (datos.email,))
+if cursor.fetchone()[0] > 0:
+    return {"mensaje": "Ya has participado", "exito": True}
+```
+
+```javascript Frontend Check
+// Before rendering form
+const response = await fetch(`${API_URL}/verificar_foro1/${email}`);
+const data = await response.json();
+if (data.participo) {
+  usuarioYaParticipo.value = true;
+  await cargarRespuestas();  // Show results instead of form
+}
+```
+</CodeGroup>
+
+## Displaying Forum Results
+
+After submission, students see all class responses:
+
+```vue
+<!-- Example from foro_1.vue -->
+<div v-for="(item, index) in listaRespuestas" :key="index" 
+     class="bg-[#1e2736] p-6 rounded-xl border-l-4 border-blue-500">
+  <div class="flex items-center gap-3">
+    <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+      {{ obtenerIniciales(item.nombre, item.apellidos) }}
+    </div>
+    <div>
+      <span class="text-blue-400 font-bold">
+        {{ item.nombre ? `${item.nombre} ${item.apellidos}` : item.email }}
+      </span>
+      <p class="text-gray-500 text-xs">{{ formatearFecha(item.fecha) }}</p>
+    </div>
+  </div>
+  
+  <!-- Display all responses -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-300 mt-4">
+    <div class="bg-white/5 p-3 rounded"><strong>P1:</strong> {{ item.r1 }}</div>
+    <div class="bg-white/5 p-3 rounded"><strong>P2:</strong> {{ item.r2 }}</div>
+    <!-- ... more responses -->
+  </div>
+</div>
+```
+
+## API Reference
+
+### Dynamic Forum Endpoints (1, 2, 4, 6)
+
+<CodeGroup>
+```http POST /guardar_foro{foro_id}
+POST /guardar_foro1
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "r1": "La DMO mide la cantidad de minerales...",
+  "r2": "Factores: ejercicio, dieta, genética...",
+  "r3": "Sí, están relacionadas porque...",
+  "r4": "...",
+  "r5": "...",
+  "r6": "..."
+}
+```
+
+```http GET /respuestas_foro{foro_id}
+GET /respuestas_foro1
+
+Response: [
+  {
+    "email": "student@example.com",
+    "nombre": "Juan",
+    "apellidos": "Pérez",
+    "r1": "...",
+    "r2": "...",
+    "fecha": "2024-03-15T10:30:00Z"
+  }
+]
+```
+
+```http GET /verificar_foro{foro_id}/{email}
+GET /verificar_foro1/student@example.com
+
+Response: {
+  "participo": true
+}
+```
+</CodeGroup>
+
+### Foro 3 Endpoints
+
+```http
+POST /guardar_en_foro_3
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "r1": "...",
+  "r2": "...",
+  "t6_r1_c1": "15",
+  "t6_r1_c2": "0.847",
+  "t6_r1_c3": "calculado...",
+  ...
+}
+
+GET /respuestas_en_foro_3
+GET /verificar_en_foro_3/{email}
+```
+
+### Foro 5 Endpoints
+
+```http
+POST /guardar_foro5/{email}
+Content-Type: multipart/form-data
+
+email: student@example.com
+r2: "La razón promedio de cambio es..."
+r3: "..."
+imagen_pregunta_3: [binary file]
+imagenes: [file1, file2, file3]
+
+GET /respuestas_en_foro_5
+GET /verificar_en_foro_5/{email}
+```
+
+<Tip>
+The forum system promotes collaborative learning by allowing students to see peer responses after submission, encouraging discussion and diverse perspectives on calculus concepts.
+</Tip>

@@ -1,0 +1,209 @@
+---
+title: 'Feedback Management'
+description: 'Save and retrieve professor feedback for student activities'
+---
+
+## Overview
+
+These endpoints allow professors to provide written feedback on student activities and retrieve previously submitted feedback.
+
+---
+
+## Save Feedback
+
+<ParamField body="email_alumno" type="string" required>
+  Student's email address
+</ParamField>
+
+<ParamField body="actividad" type="string" required>
+  Activity identifier (e.g., "foro1", "examen1")
+</ParamField>
+
+<ParamField body="comentario" type="string" required>
+  Feedback comment text from professor
+</ParamField>
+
+```bash cURL
+curl -X POST "https://api.example.com/guardar_feedback" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email_alumno": "student@example.com",
+    "actividad": "foro1",
+    "comentario": "Excellent analysis of the limit concept. Consider exploring more complex examples."
+  }'
+```
+
+### Request Model
+
+The endpoint uses the `FeedbackData` model (lines 81-84):
+
+```python
+class FeedbackData(BaseModel):
+    email_alumno: str
+    actividad: str
+    comentario: str
+```
+
+### Request Example
+
+```json
+{
+  "email_alumno": "student@example.com",
+  "actividad": "foro1",
+  "comentario": "Excellent analysis of the limit concept. Consider exploring more complex examples."
+}
+```
+
+### Response
+
+<ResponseField name="mensaje" type="string" required>
+  Status message indicating success or error details
+</ResponseField>
+
+<ResponseField name="exito" type="boolean" required>
+  Indicates whether the operation succeeded (`true`) or failed (`false`)
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "mensaje": "Feedback enviado",
+  "exito": true
+}
+```
+
+### Error Response
+
+```json
+{
+  "mensaje": "Error description",
+  "exito": false
+}
+```
+
+---
+
+## Get Feedback
+
+<ParamField path="email" type="string" required>
+  Student's email address
+</ParamField>
+
+```bash cURL
+curl -X GET "https://api.example.com/obtener_feedback/student@example.com" \
+  -H "Content-Type: application/json"
+```
+
+### Response Structure
+
+Returns a dictionary mapping activity identifiers to their most recent feedback comments. The endpoint queries all feedback for the student, ordered by date descending, and returns only the latest comment for each activity.
+
+<ResponseField name="{actividad}" type="string">
+  Most recent feedback comment for the activity. Key is the activity identifier (e.g., "foro1", "examen2").
+</ResponseField>
+
+### Response Example
+
+```json
+{
+  "foro1": "Excellent analysis of the limit concept. Consider exploring more complex examples.",
+  "foro2": "Good work on derivatives. Review the chain rule application.",
+  "examen1": "Strong performance. Minor error in question 3.",
+  "foro3": "Great insight on integration techniques."
+}
+```
+
+<Note>
+  If a student has multiple feedback entries for the same activity, only the most recent comment is returned (determined by `ORDER BY fecha DESC` on line 735).
+</Note>
+
+---
+
+## Implementation Details
+
+### Database Query (Save)
+
+The save endpoint executes (lines 719-720):
+
+```sql
+INSERT INTO feedback (email_alumno, actividad, comentario) 
+VALUES (%s, %s, %s)
+```
+
+### Database Query (Retrieve)
+
+The retrieve endpoint executes (line 735):
+
+```sql
+SELECT * FROM feedback 
+WHERE email_alumno = %s 
+ORDER BY fecha DESC
+```
+
+The results are then processed into a dictionary (lines 737-739):
+
+```python
+feedback_dict = {}
+for item in lista:
+    feedback_dict[item['actividad']] = item['comentario']
+```
+
+---
+
+## Usage Workflow
+
+### Saving Feedback (Frontend Example)
+
+```javascript
+async function enviarFeedback(emailEstudiante, actividad, comentario) {
+  const response = await fetch('/guardar_feedback', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      email_alumno: emailEstudiante,
+      actividad: actividad,
+      comentario: comentario
+    })
+  });
+  
+  const result = await response.json();
+  
+  if (result.exito) {
+    console.log('Feedback saved successfully');
+  } else {
+    console.error('Error:', result.mensaje);
+  }
+}
+```
+
+### Retrieving Feedback (Frontend Example)
+
+```javascript
+async function cargarFeedback(emailEstudiante) {
+  const response = await fetch(`/obtener_feedback/${emailEstudiante}`);
+  const feedbackDict = await response.json();
+  
+  // Access feedback by activity
+  const foro1Feedback = feedbackDict['foro1'];
+  const examen1Feedback = feedbackDict['examen1'];
+  
+  return feedbackDict;
+}
+```
+
+---
+
+## Error Responses
+
+<ResponseField name="500" type="error">
+  Database connection error
+  
+  ```json
+  {
+    "detail": "Error BD"
+  }
+  ```
+</ResponseField>

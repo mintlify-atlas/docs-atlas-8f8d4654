@@ -1,0 +1,400 @@
+---
+title: 'Backend Deployment'
+description: 'Deploy the FastAPI backend with Uvicorn to production'
+icon: 'server'
+---
+
+The Calculus Learning Platform backend is built with FastAPI and uses Uvicorn as the ASGI server, providing high-performance API endpoints for the Vue frontend.
+
+## Architecture Overview
+
+The backend provides:
+- User authentication (registration, login, profile management)
+- Forum response management (forums 1-6 with dynamic endpoints)
+- Exam submission and retrieval (examen1, examen2)
+- Teacher dashboard with student records
+- Feedback system for activities
+- Image upload handling for specific forums
+
+## Prerequisites
+
+Before deploying, ensure you have:
+
+- Python 3.8 or higher
+- PostgreSQL database (see [Database Deployment](/deployment/database))
+- Access to a cloud platform (Render, Railway, Heroku, or VPS)
+
+## Dependencies
+
+The backend requires the following Python packages:
+
+```python requirements.txt
+fastapi
+uvicorn[standard]
+psycopg2-binary
+pydantic
+python-multipart
+```
+
+<Note>
+  `python-multipart` is required for handling file uploads in forum 5, which includes image submissions.
+</Note>
+
+## Server Configuration
+
+### Main Application Setup
+
+The FastAPI application is configured in `back/main.py`:
+
+```python back/main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import psycopg2
+
+app = FastAPI()
+
+# CORS Configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+### CORS Settings
+
+<Warning>
+  The current configuration allows all origins (`allow_origins=["*"]`). This is **not recommended for production**.
+</Warning>
+
+For production, restrict CORS to your frontend domain:
+
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://your-frontend-domain.com",
+        "https://www.your-frontend-domain.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+```
+
+## Database Connection
+
+The backend connects to PostgreSQL using the `psycopg2` driver:
+
+```python back/main.py
+def conectar_bd():
+    try:
+        conn = psycopg2.connect(
+            host="dpg-d4f80d7pm1nc73eop5h0-a.oregon-postgres.render.com",
+            database="database_7vyi",
+            user="database_7vyi_user",
+            password="EqKTvvDaJK6Ml5YoVYjnt4rLQmrxYIzo",
+            port=5432,
+            sslmode="require"
+        )
+        return conn
+    except Exception as e:
+        print(f"Error conectando a la BD: {e}")
+        return None
+```
+
+<Warning>
+  **CRITICAL SECURITY ISSUE**: Database credentials are hardcoded in the source code. This is a major security vulnerability.
+</Warning>
+
+### Environment Variable Configuration
+
+Refactor the connection to use environment variables:
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def conectar_bd():
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv("DB_HOST"),
+            database=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            port=int(os.getenv("DB_PORT", 5432)),
+            sslmode=os.getenv("DB_SSLMODE", "require")
+        )
+        return conn
+    except Exception as e:
+        print(f"Error conectando a la BD: {e}")
+        return None
+```
+
+Create a `.env` file for local development:
+
+```bash .env
+DB_HOST=dpg-d4f80d7pm1nc73eop5h0-a.oregon-postgres.render.com
+DB_NAME=database_7vyi
+DB_USER=database_7vyi_user
+DB_PASSWORD=EqKTvvDaJK6Ml5YoVYjnt4rLQmrxYIzo
+DB_PORT=5432
+DB_SSLMODE=require
+```
+
+<Tip>
+  Add `.env` to your `.gitignore` to prevent committing sensitive credentials.
+</Tip>
+
+## Running the Server
+
+### Development Mode
+
+For local development, run the server with auto-reload:
+
+```bash
+uvicorn back.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+The server will be available at `http://127.0.0.1:8000`.
+
+### Production Mode
+
+For production deployment, the server configuration from `main.py` is:
+
+```python back/main.py
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+```
+
+<Warning>
+  Binding to `127.0.0.1` will only accept local connections. For production, bind to `0.0.0.0` to accept external connections.
+</Warning>
+
+Update for production:
+
+```python
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        workers=4
+    )
+```
+
+## Deployment Platforms
+
+### Render Deployment
+
+<Steps>
+  <Step title="Create render.yaml configuration">
+    ```yaml render.yaml
+    services:
+      - type: web
+        name: calculus-backend
+        env: python
+        buildCommand: pip install -r requirements.txt
+        startCommand: uvicorn back.main:app --host 0.0.0.0 --port $PORT
+        envVars:
+          - key: DB_HOST
+            sync: false
+          - key: DB_NAME
+            sync: false
+          - key: DB_USER
+            sync: false
+          - key: DB_PASSWORD
+            sync: false
+    ```
+  </Step>
+
+  <Step title="Configure environment variables">
+    In the Render dashboard, add all database environment variables under the Environment tab.
+  </Step>
+
+  <Step title="Deploy">
+    Connect your Git repository to Render and it will automatically build and deploy on push.
+  </Step>
+</Steps>
+
+### Railway Deployment
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login and initialize
+railway login
+railway init
+
+# Add environment variables
+railway variables set DB_HOST=your-host
+railway variables set DB_NAME=your-database
+railway variables set DB_USER=your-user
+railway variables set DB_PASSWORD=your-password
+
+# Deploy
+railway up
+```
+
+### Docker Deployment
+
+<CodeGroup>
+```dockerfile Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "back.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+```yaml docker-compose.yml
+version: '3.8'
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=5432
+      - DB_SSLMODE=require
+    restart: unless-stopped
+```
+</CodeGroup>
+
+Build and run:
+
+```bash
+docker-compose up -d
+```
+
+## API Endpoints
+
+The backend provides the following endpoint categories:
+
+### User Management
+- `POST /registrar` - User registration
+- `POST /login` - User authentication
+- `POST /actualizar_perfil` - Update user profile
+- `GET /conseguir_usuario/{email}` - Get user details
+
+### Dynamic Forum Endpoints (1, 2, 4, 6)
+- `POST /guardar_foro{foro_id}` - Submit forum responses
+- `GET /respuestas_foro{foro_id}` - Get all forum responses
+- `GET /verificar_foro{foro_id}/{email}` - Check user participation
+
+### Special Forums
+- `POST /guardar_en_foro_3` - Forum 3 with complex table structure
+- `POST /guardar_foro5/{email}` - Forum 5 with image uploads
+- `GET /respuestas_en_foro_3` - Get Forum 3 responses
+- `GET /respuestas_en_foro_5` - Get Forum 5 responses with base64 images
+
+### Exams
+- `POST /guardar_examen1` - Submit exam 1
+- `POST /guardar_examen2` - Submit exam 2
+- `GET /respuestas_examen1` - Get exam 1 submissions
+- `GET /respuestas_examen2` - Get exam 2 submissions
+- `GET /verificar_examen1/{email}` - Check exam 1 participation
+- `GET /verificar_examen2/{email}` - Check exam 2 participation
+
+### Teacher Dashboard
+- `GET /lista_estudiantes` - Get all students (excluding admin)
+- `GET /expediente_completo/{email}` - Get complete student record
+- `GET /expediente_completo_alumno/{email}` - Get student's own record
+- `POST /guardar_feedback` - Submit teacher feedback
+- `GET /obtener_feedback/{email}` - Get feedback for student
+
+## Production Considerations
+
+<Steps>
+  <Step title="Security hardening">
+    - Remove hardcoded credentials
+    - Restrict CORS origins
+    - Implement rate limiting
+    - Add API authentication/authorization
+    - Hash passwords (currently stored in plaintext)
+  </Step>
+
+  <Step title="Performance optimization">
+    - Use connection pooling for database
+    - Implement caching for frequently accessed data
+    - Add database indexes on email fields
+    - Use async database drivers (asyncpg)
+  </Step>
+
+  <Step title="Monitoring and logging">
+    - Implement structured logging
+    - Add error tracking (Sentry, Rollbar)
+    - Monitor database connection health
+    - Track API response times
+  </Step>
+
+  <Step title="Scalability">
+    - Run multiple Uvicorn workers
+    - Consider load balancing for high traffic
+    - Optimize database queries
+    - Implement request queuing for heavy operations
+  </Step>
+</Steps>
+
+## Health Check Endpoint
+
+Add a health check endpoint for monitoring:
+
+```python
+@app.get("/health")
+async def health_check():
+    try:
+        conn = conectar_bd()
+        if conn:
+            conn.close()
+            return {"status": "healthy", "database": "connected"}
+        return {"status": "unhealthy", "database": "disconnected"}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+```
+
+## Troubleshooting
+
+### Database Connection Errors
+
+If you see connection errors:
+- Verify database credentials
+- Check if the database allows connections from your deployment IP
+- Ensure SSL mode is correctly configured
+- Test connection using `psql` command-line tool
+
+### CORS Issues
+
+If the frontend can't connect:
+- Verify frontend domain is in `allow_origins`
+- Check browser console for CORS error details
+- Ensure both HTTP and HTTPS variants are allowed if needed
+
+### Port Binding Issues
+
+If the server won't start:
+- Check if port 8000 is already in use
+- Use `PORT` environment variable for cloud platforms
+- Verify firewall rules allow incoming connections
+
+<Info>
+  The backend is currently deployed on Render at `https://proyecto-ingenieria-software-6ccv.onrender.com` according to the frontend source code.
+</Info>

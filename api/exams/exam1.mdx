@@ -1,0 +1,199 @@
+---
+title: "Exam 1"
+description: "Submit and retrieve Exam 1 responses"
+---
+
+## Submit Exam 1 Responses
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/guardar_examen1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "student@example.com",
+    "r1": "answer1",
+    "r2": "answer2",
+    "r3": "answer3",
+    "r4": "answer4",
+    "r5": "answer5",
+    "r6": "answer6"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.example.com/guardar_examen1', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    email: 'student@example.com',
+    r1: 'answer1',
+    r2: 'answer2',
+    r3: 'answer3',
+    r4: 'answer4',
+    r5: 'answer5',
+    r6: 'answer6'
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+url = "https://api.example.com/guardar_examen1"
+payload = {
+    "email": "student@example.com",
+    "r1": "answer1",
+    "r2": "answer2",
+    "r3": "answer3",
+    "r4": "answer4",
+    "r5": "answer5",
+    "r6": "answer6"
+}
+
+response = requests.post(url, json=payload)
+print(response.json())
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "mensaje": "Guardado",
+  "exito": true
+}
+```
+</ResponseExample>
+
+### Request Body
+
+<ParamField body="email" type="string" required>
+  Student's email address
+</ParamField>
+
+<ParamField body="r1" type="string" default="">
+  Answer to question 1
+</ParamField>
+
+<ParamField body="r2" type="string" default="">
+  Answer to question 2
+</ParamField>
+
+<ParamField body="r3" type="string" default="">
+  Answer to question 3
+</ParamField>
+
+<ParamField body="r4" type="string" default="">
+  Answer to question 4
+</ParamField>
+
+<ParamField body="r5" type="string" default="">
+  Answer to question 5
+</ParamField>
+
+<ParamField body="r6" type="string" default="">
+  Answer to question 6
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="mensaje" type="string">
+  Success message ("Guardado")
+</ResponseField>
+
+<ResponseField name="exito" type="boolean">
+  Indicates whether the submission was successful
+</ResponseField>
+
+---
+
+## Get All Exam 1 Submissions
+
+<RequestExample>
+```bash cURL
+curl https://api.example.com/respuestas_examen1
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.example.com/respuestas_examen1');
+const submissions = await response.json();
+console.log(submissions);
+```
+
+```python Python
+import requests
+
+response = requests.get("https://api.example.com/respuestas_examen1")
+submissions = response.json()
+print(submissions)
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+[
+  {
+    "email": "student@example.com",
+    "r1": "answer1",
+    "r2": "answer2",
+    "r3": "answer3",
+    "r4": "answer4",
+    "r5": "answer5",
+    "r6": "answer6",
+    "fecha": "2024-01-15T10:30:00",
+    "nombre": "John",
+    "apellidos": "Doe"
+  }
+]
+```
+</ResponseExample>
+
+### Response Fields
+
+<ResponseField name="email" type="string">
+  Student's email address
+</ResponseField>
+
+<ResponseField name="r1" type="string">
+  Answer to question 1
+</ResponseField>
+
+<ResponseField name="r2" type="string">
+  Answer to question 2
+</ResponseField>
+
+<ResponseField name="r3" type="string">
+  Answer to question 3
+</ResponseField>
+
+<ResponseField name="r4" type="string">
+  Answer to question 4
+</ResponseField>
+
+<ResponseField name="r5" type="string">
+  Answer to question 5
+</ResponseField>
+
+<ResponseField name="r6" type="string">
+  Answer to question 6
+</ResponseField>
+
+<ResponseField name="fecha" type="datetime">
+  Submission timestamp
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Student's first name (joined from usuarios table)
+</ResponseField>
+
+<ResponseField name="apellidos" type="string">
+  Student's last name (joined from usuarios table)
+</ResponseField>
+
+<Note>
+  Results are ordered by submission date (most recent first) and include user information via LEFT JOIN with the usuarios table.
+</Note>

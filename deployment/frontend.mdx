@@ -1,0 +1,224 @@
+---
+title: 'Frontend Deployment'
+description: 'Deploy the Vue 3 frontend application to production'
+icon: 'cloud-arrow-up'
+---
+
+The Calculus Learning Platform frontend is built with Vue 3 and Vite, providing a modern development experience and optimized production builds.
+
+## Prerequisites
+
+Before deploying the frontend, ensure you have:
+
+- Node.js version `^20.19.0` or `>=22.12.0` (as specified in `package.json`)
+- npm or yarn package manager
+- Access to your chosen hosting platform (Vercel, Netlify, etc.)
+
+## Build Configuration
+
+The application uses Vite as the build tool with the following configuration:
+
+### vite.config.js
+
+```javascript vite.config.js
+import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    tailwindcss()
+  ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    },
+  },
+})
+```
+
+This configuration includes:
+- **Vue plugin** for SFC (Single File Component) support
+- **Tailwind CSS** via the official Vite plugin for styling
+- **Path aliases** with `@` pointing to the `src/` directory
+
+## Environment Variables
+
+The frontend connects to the backend API using hardcoded URLs in the source code. You'll need to update the API URL in your Vue components before deployment.
+
+### API URL Configuration
+
+The API URL is currently defined in multiple components:
+
+```javascript
+const API_URL = "https://proyecto-ingenieria-software-6ccv.onrender.com";
+```
+
+<Warning>
+  Before deploying to production, update all instances of `API_URL` in your Vue components to point to your production backend endpoint. Key files include:
+  - `src/views/panel_alumno.vue`
+  - `src/views/foro_6.vue`
+  - `src/views/examen1.vue`
+  - `src/views/PanelProfesor.vue`
+</Warning>
+
+<Tip>
+  Consider refactoring to use Vite environment variables (`import.meta.env.VITE_API_URL`) for better configuration management across environments.
+</Tip>
+
+## Building for Production
+
+<Steps>
+  <Step title="Install dependencies">
+    Install all required packages from `package.json`:
+    
+    ```bash
+    npm install
+    ```
+    
+    This installs:
+    - Vue 3 (^3.5.22)
+    - Vue Router (^4.6.3)
+    - Axios (^1.13.2)
+    - Tailwind CSS (^4.1.16)
+    - Vite build tools
+  </Step>
+
+  <Step title="Run the production build">
+    Execute the build script defined in `package.json`:
+    
+    ```bash
+    npm run build
+    ```
+    
+    This command runs `vite build`, which:
+    - Bundles and minifies JavaScript/CSS
+    - Optimizes assets for production
+    - Outputs files to the `dist/` directory
+    - Tree-shakes unused code
+  </Step>
+
+  <Step title="Preview the build (optional)">
+    Test the production build locally before deployment:
+    
+    ```bash
+    npm run preview
+    ```
+    
+    This starts a local server serving the built files from `dist/`.
+  </Step>
+</Steps>
+
+## Deployment Options
+
+The built application is a collection of static files that can be deployed to any static hosting provider.
+
+### Vercel Deployment
+
+<CodeGroup>
+```bash CLI
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy from the project root
+vercel
+```
+
+```json vercel.json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite"
+}
+```
+</CodeGroup>
+
+### Netlify Deployment
+
+<CodeGroup>
+```bash CLI
+# Install Netlify CLI
+npm install -g netlify-cli
+
+# Deploy
+netlify deploy --prod --dir=dist
+```
+
+```toml netlify.toml
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+</CodeGroup>
+
+<Note>
+  The `redirects` configuration is essential for Vue Router to work correctly in history mode. It ensures all routes are handled by the SPA.
+</Note>
+
+### Static Hosting (nginx)
+
+For self-hosted deployments using nginx:
+
+```nginx nginx.conf
+server {
+    listen 80;
+    server_name yourdomain.com;
+    root /var/www/calculus-platform/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+## Post-Deployment Checklist
+
+After deploying the frontend:
+
+- [ ] Verify the application loads correctly
+- [ ] Test user registration and login functionality
+- [ ] Confirm API connectivity to the backend
+- [ ] Check that all forum and exam pages render properly
+- [ ] Verify Vue Router navigation works on all routes
+- [ ] Test CORS configuration with your backend
+- [ ] Monitor browser console for any errors
+
+## Troubleshooting
+
+### Build Failures
+
+If the build fails, check:
+- Node.js version matches the requirements in `package.json`
+- All dependencies are installed (`node_modules/` exists)
+- No syntax errors in Vue components
+
+### API Connection Errors
+
+If the frontend can't connect to the backend:
+- Verify the `API_URL` is correct in all components
+- Check CORS settings on the backend (see [Backend Deployment](/deployment/backend))
+- Ensure the backend is running and accessible
+
+### Routing Issues
+
+If routes return 404 errors:
+- Verify your hosting platform redirects all routes to `index.html`
+- Check that Vue Router is properly configured in `index.js`
+
+<Info>
+  The application uses Vue Router for client-side routing. Make sure your hosting platform is configured to serve `index.html` for all routes.
+</Info>

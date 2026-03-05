@@ -1,0 +1,179 @@
+---
+title: "Verify Exam Participation"
+description: "Check if a student has already submitted an exam"
+---
+
+## Verify Exam 1 Participation
+
+<RequestExample>
+```bash cURL
+curl https://api.example.com/verificar_examen1/student@example.com
+```
+
+```javascript JavaScript
+const email = 'student@example.com';
+const response = await fetch(`https://api.example.com/verificar_examen1/${email}`);
+const data = await response.json();
+
+if (data.participo) {
+  console.log('Student has already submitted Exam 1');
+} else {
+  console.log('Student has not submitted Exam 1');
+}
+```
+
+```python Python
+import requests
+
+email = "student@example.com"
+response = requests.get(f"https://api.example.com/verificar_examen1/{email}")
+data = response.json()
+
+if data["participo"]:
+    print("Student has already submitted Exam 1")
+else:
+    print("Student has not submitted Exam 1")
+```
+</RequestExample>
+
+<ResponseExample>
+```json Has Submitted
+{
+  "participo": true
+}
+```
+
+```json Has Not Submitted
+{
+  "participo": false
+}
+```
+</ResponseExample>
+
+### Path Parameters
+
+<ParamField path="email" type="string" required>
+  Email address of the student to verify
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="participo" type="boolean">
+  `true` if the student has already submitted Exam 1, `false` otherwise
+</ResponseField>
+
+<Note>
+  The admin account (admin@gmail.com) is excluded from verification checks and will always return `false`.
+</Note>
+
+---
+
+## Verify Exam 2 Participation
+
+<RequestExample>
+```bash cURL
+curl https://api.example.com/verificar_examen2/student@example.com
+```
+
+```javascript JavaScript
+const email = 'student@example.com';
+const response = await fetch(`https://api.example.com/verificar_examen2/${email}`);
+const data = await response.json();
+
+if (data.participo) {
+  console.log('Student has already submitted Exam 2');
+} else {
+  console.log('Student has not submitted Exam 2');
+}
+```
+
+```python Python
+import requests
+
+email = "student@example.com"
+response = requests.get(f"https://api.example.com/verificar_examen2/{email}")
+data = response.json()
+
+if data["participo"]:
+    print("Student has already submitted Exam 2")
+else:
+    print("Student has not submitted Exam 2")
+```
+</RequestExample>
+
+<ResponseExample>
+```json Has Submitted
+{
+  "participo": true
+}
+```
+
+```json Has Not Submitted
+{
+  "participo": false
+}
+```
+</ResponseExample>
+
+### Path Parameters
+
+<ParamField path="email" type="string" required>
+  Email address of the student to verify
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="participo" type="boolean">
+  `true` if the student has already submitted Exam 2, `false` otherwise
+</ResponseField>
+
+<Note>
+  The admin account (admin@gmail.com) is excluded from verification checks and will always return `false`.
+</Note>
+
+---
+
+## Use Cases
+
+The verification endpoints are useful for:
+
+- **Preventing duplicate submissions**: Check if a student has already submitted before allowing them to take the exam
+- **Access control**: Show different UI states based on whether the student has participated
+- **Progress tracking**: Display which exams a student has completed
+
+### Example: Preventing Duplicate Submissions
+
+```javascript JavaScript
+async function checkExamAccess(email) {
+  const response = await fetch(`https://api.example.com/verificar_examen1/${email}`);
+  const data = await response.json();
+  
+  if (data.participo) {
+    alert('You have already submitted this exam');
+    return false;
+  }
+  
+  return true;
+}
+
+// Before showing exam form
+if (await checkExamAccess(userEmail)) {
+  displayExamForm();
+}
+```
+
+```python Python
+def check_exam_access(email: str) -> bool:
+    response = requests.get(f"https://api.example.com/verificar_examen1/{email}")
+    data = response.json()
+    
+    if data["participo"]:
+        print("You have already submitted this exam")
+        return False
+    
+    return True
+
+# Before showing exam form
+if check_exam_access(user_email):
+    display_exam_form()
+```

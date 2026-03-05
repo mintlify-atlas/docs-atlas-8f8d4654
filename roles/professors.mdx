@@ -1,0 +1,580 @@
+---
+title: Professor Role Guide
+description: Complete guide for professors managing students and providing feedback on the Calculus Learning Platform
+icon: chalkboard-user
+---
+
+The professor role provides comprehensive tools for monitoring student progress, reviewing submitted work, and providing personalized feedback across all learning activities.
+
+## Professor Credentials
+
+The default professor account is:
+
+<Note>
+**Email**: `admin@gmail.com`  
+**Password**: Set during platform deployment
+</Note>
+
+<Warning>
+For security, change the default password immediately after first login. Contact your system administrator for password reset procedures.
+</Warning>
+
+## Professor Dashboard Overview
+
+The professor interface (`PanelProfesor.vue`) is a comprehensive workspace with two main components:
+
+### Left Sidebar: Student List
+
+Displays all registered students with:
+- Student name and initials avatar
+- Email address
+- Visual selection indicator
+- Total student count
+
+```vue
+<aside class="w-80 bg-[#161d2b] border-r border-gray-700 flex flex-col">
+  <div class="p-4 border-b border-gray-700 bg-blue-900/20">
+    <h2 class="text-xl font-bold text-sky-300 flex items-center gap-2">
+      <span class="material-symbols-outlined">school</span>
+      Mis Estudiantes
+    </h2>
+    <p class="text-xs text-gray-400 mt-1">
+      {{ estudiantes.length }} alumnos registrados
+    </p>
+  </div>
+</aside>
+```
+
+### Right Panel: Student Record Viewer
+
+Expands to show detailed information when a student is selected.
+
+## Accessing the Platform
+
+<Steps>
+  <Step title="Login as Professor">
+    Navigate to the login page and enter professor credentials (`admin@gmail.com`).
+  </Step>
+  
+  <Step title="View Student List">
+    Upon login, the professor dashboard loads all students via API:
+    
+    ```javascript
+    const res = await fetch(`${API_URL}/lista_estudiantes`);
+    estudiantes.value = await res.json();
+    ```
+  </Step>
+  
+  <Step title="Select a Student">
+    Click any student in the sidebar to load their complete academic record.
+  </Step>
+</Steps>
+
+## Student List Management
+
+The sidebar provides an interactive student directory:
+
+```vue
+<button
+  v-for="alumno in estudiantes"
+  :key="alumno.email"
+  @click="cargarExpediente(alumno)"
+  class="w-full text-left p-4 hover:bg-gray-800 transition-colors"
+  :class="seleccionado?.email === alumno.email 
+    ? 'bg-sky-900/20 border-l-4 border-l-sky-400' 
+    : ''"
+>
+  <div class="h-10 w-10 rounded-full bg-gray-700 flex items-center justify-center">
+    {{ obtenerIniciales(alumno) }}
+  </div>
+  <div>
+    <p class="font-bold text-sm">{{ alumno.nombre }} {{ alumno.apellidos }}</p>
+    <p class="text-xs text-gray-500">{{ alumno.email }}</p>
+  </div>
+</button>
+```
+
+### Features:
+- **Visual Selection**: Selected student is highlighted with blue accent
+- **Hover Effects**: Smooth transitions for better UX
+- **Avatar Initials**: Automatically generated from student name
+- **Real-time Count**: Dynamic student count display
+
+## Loading Student Records (Expedientes)
+
+When a student is selected, their complete expediente is fetched:
+
+```javascript
+async function cargarExpediente(alumno) {
+  seleccionado.value = alumno;
+  cargandoExpediente.value = true;
+  
+  // Reset accordion states
+  expandido.value = {
+    f1: false, f2: false, f3: false, f4: false, f5: false, f6: false,
+    e1: false, e2: false
+  };
+
+  // Clear previous feedback inputs
+  Object.keys(feedbackInputs).forEach((k) => (feedbackInputs[k] = ""));
+
+  try {
+    const res = await fetch(`${API_URL}/expediente_completo/${alumno.email}`);
+    expediente.value = await res.json();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    cargandoExpediente.value = false;
+  }
+}
+```
+
+The expediente contains:
+- All forum submissions (foro1-foro6)
+- Exam results (examen1-examen2)
+- Submission timestamps
+- Response data for each question
+
+<Info>
+Student records are fetched from `/expediente_completo/{email}` endpoint, distinct from the student's own view endpoint.
+</Info>
+
+## Reviewing Student Work
+
+Each activity is displayed as an expandable card with color-coded themes:
+
+### Forum Cards
+
+<CardGroup cols={2}>
+  <Card title="Foro 1: Densidad Mineral" icon="forum" color="#06b6d4">
+    Cyan theme - Introduction to bone mineral density
+  </Card>
+  
+  <Card title="Foro 2: Gráfico Comparativo" icon="bar-chart" color="#0ea5e9">
+    Sky theme - Comparative graph analysis
+  </Card>
+  
+  <Card title="Foro 3: DMO Cadera" icon="person" color="#3b82f6">
+    Blue theme - Hip bone density analysis
+  </Card>
+  
+  <Card title="Foro 4: Análisis DMO" icon="chart-line" color="#6366f1">
+    Indigo theme - BMD analytical expressions
+  </Card>
+  
+  <Card title="Foro 5: Razón de Cambio" icon="arrow-trend-up" color="#8b5cf6">
+    Violet theme - Rate of change with image uploads
+  </Card>
+  
+  <Card title="Foro 6: Covariación" icon="arrows-left-right" color="#a855f7">
+    Purple theme - Covariation and derivatives
+  </Card>
+</CardGroup>
+
+### Exam Cards
+
+<CardGroup cols={2}>
+  <Card title="Examen 1" icon="clipboard-check" color="#14b8a6">
+    Teal theme - First comprehensive assessment
+  </Card>
+  
+  <Card title="Examen 2" icon="clipboard-check" color="#f43f5e">
+    Rose theme - Final assessment
+  </Card>
+</CardGroup>
+
+## Activity Card Structure
+
+Each activity card follows this pattern:
+
+```vue
+<div class="bg-[#1e293b] rounded-xl overflow-hidden border border-gray-700 shadow-lg">
+  <!-- Header -->
+  <div class="bg-gray-800 px-6 py-4 flex justify-between items-center cursor-pointer"
+       @click="toggle('f1')">
+    <h3 class="font-bold text-lg flex items-center gap-2 text-cyan-300">
+      <span class="material-symbols-outlined text-cyan-400">forum</span>
+      Foro 1: Densidad Mineral
+    </h3>
+    <div class="flex items-center gap-3">
+      <!-- Completion Badge -->
+      <span class="text-xs px-2 py-1 rounded font-bold border"
+            :class="expediente.foro1 
+              ? 'bg-green-900/30 text-green-300 border-green-700' 
+              : 'bg-red-900/30 text-red-300 border-red-800'">
+        {{ expediente.foro1 ? "Completado" : "Sin entregar" }}
+      </span>
+      <!-- Expand Icon -->
+      <span class="material-symbols-outlined" :class="expandido.f1 ? 'rotate-180' : ''">
+        expand_more
+      </span>
+    </div>
+  </div>
+  
+  <!-- Expandable Content -->
+  <div v-if="expediente.foro1 && expandido.f1" 
+       class="p-6 border-t border-gray-700 border-l-4 border-l-cyan-500">
+    <!-- Student responses displayed here -->
+  </div>
+</div>
+```
+
+### Completion Status Badges
+
+- **Green Badge** (`Completado`): Student has submitted work
+- **Red Badge** (`Sin entregar`): No submission yet
+
+<Tip>
+Click the activity header to expand/collapse the content. This accordion system helps manage large amounts of student data efficiently.
+</Tip>
+
+## Viewing Student Responses
+
+Within each expanded activity card, student responses are organized:
+
+### Text Responses
+
+```vue
+<div class="grid gap-4 mb-6">
+  <div>
+    <strong class="text-cyan-200 block mb-1">1. Definición:</strong>
+    <p class="bg-gray-900/50 p-2 rounded">{{ expediente.foro1.r1 }}</p>
+  </div>
+  
+  <!-- Additional questions in collapsible details -->
+  <details>
+    <summary class="cursor-pointer text-cyan-400 mt-1">
+      Ver todas las respuestas...
+    </summary>
+    <div class="mt-2 space-y-2 pl-2 border-l border-gray-700">
+      <p><strong class="text-cyan-200">P2:</strong> {{ expediente.foro1.r2 }}</p>
+      <p><strong class="text-cyan-200">P3:</strong> {{ expediente.foro1.r3 }}</p>
+      <!-- ... more responses -->
+    </div>
+  </details>
+</div>
+```
+
+### Image Submissions (Foro 5)
+
+Some forums include image uploads:
+
+```vue
+<div v-if="expediente.foro5.imagen_1 || expediente.foro5.imagen_2 || expediente.foro5.imagen_3">
+  <strong class="text-violet-200 block mb-2">1. Fotos de la tabla (RPC):</strong>
+  <div class="grid grid-cols-3 gap-2">
+    <img v-if="expediente.foro5.imagen_1" 
+         :src="expediente.foro5.imagen_1"
+         class="rounded border border-gray-600 h-32 w-full object-cover" />
+    <img v-if="expediente.foro5.imagen_2" 
+         :src="expediente.foro5.imagen_2"
+         class="rounded border border-gray-600 h-32 w-full object-cover" />
+    <img v-if="expediente.foro5.imagen_3" 
+         :src="expediente.foro5.imagen_3"
+         class="rounded border border-gray-600 h-32 w-full object-cover" />
+  </div>
+</div>
+
+<!-- Sketch/diagram upload -->
+<div v-if="expediente.foro5.imagen_pregunta_3">
+  <strong class="text-violet-200 block mb-2">3. Bosquejo de la gráfica:</strong>
+  <img :src="expediente.foro5.imagen_pregunta_3"
+       class="rounded border border-gray-600 max-h-64 object-contain" />
+</div>
+```
+
+<Note>
+Foro 5 (Razón de Cambio) uniquely includes image uploads for tables and graph sketches, requiring visual assessment.
+</Note>
+
+### Exam Scores
+
+Exam 1 includes a score field:
+
+```vue
+<div>
+  <strong class="text-teal-200 block mb-1">Puntaje:</strong>
+  <span class="bg-teal-900/50 text-teal-300 px-2 py-1 rounded font-bold">
+    {{ expediente.examen1.r6 }}
+  </span>
+</div>
+```
+
+## Providing Feedback
+
+Each activity card includes a feedback section at the bottom:
+
+```vue
+<div class="mt-4 pt-4 border-t border-gray-700">
+  <label class="text-xs font-bold text-cyan-500 uppercase mb-2 block">
+    Retroalimentación:
+  </label>
+  <div class="flex gap-2">
+    <textarea
+      v-model="feedbackInputs.foro1"
+      rows="1"
+      class="flex-1 bg-gray-900 border border-gray-600 rounded p-2 text-white 
+             focus:border-cyan-500 outline-none transition-all"
+      placeholder="Escribe un comentario..."
+    ></textarea>
+    <button
+      @click="enviarFeedback('foro1')"
+      class="bg-cyan-700 hover:bg-cyan-600 text-white px-4 rounded 
+             font-bold text-xs transition-colors">
+      Enviar
+    </button>
+  </div>
+</div>
+```
+
+### Feedback System
+
+<Steps>
+  <Step title="Review Student Work">
+    Expand the activity card and thoroughly review all student responses.
+  </Step>
+  
+  <Step title="Write Feedback">
+    In the textarea at the bottom of the card, write constructive feedback. This can include:
+    - Praise for correct understanding
+    - Clarification of concepts
+    - Suggestions for improvement
+    - Encouragement to continue learning
+  </Step>
+  
+  <Step title="Submit Feedback">
+    Click the "Enviar" button. The feedback is sent via API:
+    
+    ```javascript
+    async function enviarFeedback(actividad) {
+      const texto = feedbackInputs[actividad];
+      if (!texto) return alert("Escribe un comentario primero.");
+
+      try {
+        const res = await fetch(`${API_URL}/guardar_feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email_alumno: seleccionado.value.email,
+            actividad: actividad,
+            comentario: texto,
+          }),
+        });
+        const datos = await res.json();
+        if (datos.exito) {
+          alert("Feedback enviado correctamente");
+          feedbackInputs[actividad] = ""; // Clear field
+        }
+      } catch (e) {
+        alert("Error de conexión");
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Verify Delivery">
+    Successful submission displays "Feedback enviado correctamente" and clears the textarea.
+  </Step>
+</Steps>
+
+<Warning>
+Ensure feedback is constructive and professional. Students receive it directly in their dashboard.
+</Warning>
+
+## Feedback State Management
+
+The system maintains separate feedback inputs for each activity:
+
+```javascript
+const feedbackInputs = reactive({
+  foro1: "",
+  foro2: "",
+  foro3: "",
+  foro4: "",
+  foro5: "",
+  foro6: "",
+  examen1: "",
+  examen2: "",
+});
+```
+
+When switching students, all feedback inputs are cleared:
+
+```javascript
+Object.keys(feedbackInputs).forEach((k) => (feedbackInputs[k] = ""));
+```
+
+This prevents accidentally sending feedback to the wrong student.
+
+## Monitoring Student Progress
+
+While viewing the student list, you can quickly identify:
+
+### Completion Patterns
+- Students with all activities completed (ready for evaluation)
+- Students with partial completion (may need encouragement)
+- Students with no submissions (require intervention)
+
+### Activity-Specific Insights
+
+For each forum, check:
+1. **Response Quality**: Depth and accuracy of answers
+2. **Conceptual Understanding**: Evidence of grasping derivative concepts
+3. **Mathematical Reasoning**: Proper use of calculus terminology
+4. **Critical Thinking**: Ability to analyze bone density data
+
+<Tip>
+Use the accordion system to review multiple students quickly - expand only the activities you need to check for each student.
+</Tip>
+
+## Color-Coded Activity System
+
+The interface uses distinct colors for each activity to improve navigation:
+
+| Activity | Color | Hex Code | Theme |
+|----------|-------|----------|-------|
+| Foro 1 | Cyan | `#06b6d4` | `text-cyan-300`, `border-l-cyan-500` |
+| Foro 2 | Sky | `#0ea5e9` | `text-sky-300`, `border-l-sky-500` |
+| Foro 3 | Blue | `#3b82f6` | `text-blue-300`, `border-l-blue-500` |
+| Foro 4 | Indigo | `#6366f1` | `text-indigo-300`, `border-l-indigo-500` |
+| Foro 5 | Violet | `#8b5cf6` | `text-violet-300`, `border-l-violet-600` |
+| Foro 6 | Purple | `#a855f7` | `text-purple-300`, `border-l-purple-600` |
+| Examen 1 | Teal | `#14b8a6` | `text-teal-300`, `border-l-teal-500` |
+| Examen 2 | Rose | `#f43f5e` | `text-rose-300`, `border-l-rose-500` |
+
+This visual system helps quickly locate activities when reviewing multiple students.
+
+## Accordion Toggle System
+
+The expandido state manages which activities are open:
+
+```javascript
+const expandido = ref({
+  f1: false,  // Foro 1
+  f2: false,  // Foro 2
+  f3: false,  // Foro 3
+  f4: false,  // Foro 4
+  f5: false,  // Foro 5
+  f6: false,  // Foro 6
+  e1: false,  // Examen 1
+  e2: false,  // Examen 2
+});
+
+function toggle(seccion) {
+  expandido.value[seccion] = !expandido.value[seccion];
+}
+```
+
+All accordions are collapsed by default when loading a new student to maintain a clean interface.
+
+## Logout Functionality
+
+The sidebar includes a logout button:
+
+```vue
+<div class="p-4 border-t border-gray-700">
+  <button
+    @click="cerrarSesion"
+    class="w-full py-2 bg-red-900/50 hover:bg-red-900 text-red-200 rounded">
+    Cerrar Sesión Profe
+  </button>
+</div>
+```
+
+```javascript
+function cerrarSesion() {
+  localStorage.clear();
+  router.push("/");
+}
+```
+
+This clears all local storage and redirects to the login page.
+
+## API Endpoints Used
+
+Professors interact with these backend endpoints:
+
+| Endpoint | Method | Purpose |
+|----------|--------|----------|
+| `/lista_estudiantes` | GET | Retrieve all registered students |
+| `/expediente_completo/{email}` | GET | Fetch complete student record |
+| `/guardar_feedback` | POST | Submit feedback for student activity |
+
+### Feedback API Request
+
+```json
+{
+  "email_alumno": "student@example.com",
+  "actividad": "foro1",
+  "comentario": "Excellent analysis of bone mineral density concepts!"
+}
+```
+
+### Feedback API Response
+
+```json
+{
+  "exito": true
+}
+```
+
+<Info>
+All API requests use the base URL: `https://proyecto-ingenieria-software-6ccv.onrender.com`
+</Info>
+
+## Best Practices for Professors
+
+<CardGroup cols={2}>
+  <Card title="Regular Reviews" icon="calendar-check">
+    Check student submissions regularly to provide timely feedback and maintain engagement
+  </Card>
+  
+  <Card title="Constructive Feedback" icon="comments">
+    Focus on specific improvements and positive reinforcement to enhance learning outcomes
+  </Card>
+  
+  <Card title="Identify Patterns" icon="magnifying-glass-chart">
+    Look for common misconceptions across students to address in class discussions
+  </Card>
+  
+  <Card title="Track Progress" icon="list-check">
+    Monitor which students are keeping up with the sequence and who needs additional support
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Student List Not Loading
+If the student list appears empty:
+1. Check network connection and API availability
+2. Verify professor authentication is valid
+3. Check browser console for error messages
+4. Confirm `/lista_estudiantes` endpoint is accessible
+
+### Expediente Not Loading
+If clicking a student doesn't load their record:
+1. Check if the loading spinner appears (indicates request was made)
+2. Verify the student has a valid email in the system
+3. Check browser console for 404 or 500 errors
+4. Ensure `/expediente_completo/{email}` endpoint is functioning
+
+### Feedback Not Sending
+If feedback submission fails:
+1. Verify feedback text is not empty
+2. Check network connection
+3. Ensure `/guardar_feedback` endpoint is operational
+4. Confirm student email is correct
+5. Check browser console for error responses
+
+### Missing Student Responses
+If a completed activity shows empty responses:
+- The student may have submitted empty forms
+- Data may not have saved properly on submission
+- Check the expediente JSON structure in browser DevTools
+
+## Related Resources
+
+- [Student Role Guide](/roles/students) - Understanding the student perspective
+- [Authentication API](/api/auth/login) - API authentication documentation
+- [Professor API](/api/professor/students) - Professor panel API endpoints
+- [Database Deployment](/deployment/database) - Database schema and structure

@@ -1,0 +1,93 @@
+---
+title: 'Get Student List'
+api: 'GET /lista_estudiantes'
+description: 'Retrieve a list of all students enrolled in the platform'
+---
+
+## Overview
+
+This endpoint returns a complete list of students registered in the Calculus Learning Platform. The list is sorted by last name and excludes the admin account.
+
+<Note>
+  The admin account (`admin@gmail.com`) is automatically excluded from the results.
+</Note>
+
+## Request
+
+```bash cURL
+curl -X GET "https://api.example.com/lista_estudiantes" \
+  -H "Content-Type: application/json"
+```
+
+## Response
+
+Returns an array of student objects, ordered alphabetically by last name (`apellidos ASC`).
+
+<ResponseField name="email" type="string" required>
+  Student's email address (unique identifier)
+</ResponseField>
+
+<ResponseField name="nombre" type="string" required>
+  Student's first name
+</ResponseField>
+
+<ResponseField name="apellidos" type="string" required>
+  Student's last name(s)
+</ResponseField>
+
+### Response Example
+
+```json
+[
+  {
+    "email": "student1@example.com",
+    "nombre": "Juan",
+    "apellidos": "García López"
+  },
+  {
+    "email": "student2@example.com",
+    "nombre": "María",
+    "apellidos": "Martínez Silva"
+  },
+  {
+    "email": "student3@example.com",
+    "nombre": "Carlos",
+    "apellidos": "Rodríguez Pérez"
+  }
+]
+```
+
+## Implementation Details
+
+The endpoint executes the following SQL query (line 380-384):
+
+```sql
+SELECT email, nombre, apellidos 
+FROM usuarios 
+WHERE email != 'admin@gmail.com'
+ORDER BY apellidos ASC
+```
+
+## Usage in Frontend
+
+This endpoint is utilized in the `PanelProfesor.vue` component to populate the student selection dropdown:
+
+```javascript
+async function cargarEstudiantes() {
+  const response = await fetch('/lista_estudiantes');
+  const estudiantes = await response.json();
+  // Populate student list in UI
+}
+```
+
+## Error Responses
+
+<ResponseField name="500" type="error">
+  Database connection error
+  
+  ```json
+  {
+    "detail": "Error BD"
+  }
+  ```
+</ResponseField>

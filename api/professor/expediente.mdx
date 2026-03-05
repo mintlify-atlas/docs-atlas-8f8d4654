@@ -1,0 +1,220 @@
+---
+title: 'Student Records'
+description: 'Retrieve complete student academic records including forum responses and exam submissions'
+---
+
+## Overview
+
+These endpoints provide access to student academic records (expedientes). There are two variants: one for professor view with complete data, and one for student view with limited fields.
+
+<Warning>
+  Requests for `admin@gmail.com` return null values for all activities to prevent data exposure.
+</Warning>
+
+---
+
+## Get Complete Student Record (Professor View)
+
+<ParamField path="email" type="string" required>
+  Student's email address
+</ParamField>
+
+```bash cURL
+curl -X GET "https://api.example.com/expediente_completo/student@example.com" \
+  -H "Content-Type: application/json"
+```
+
+### Response Structure
+
+Returns an object containing all forum responses and exam submissions for the specified student.
+
+<Expandable title="Forum 1 Response (foro1)">
+  <ResponseField name="foro1" type="object | null">
+    Complete response data from Forum 1, including all fields from `respuestas_foro1` table.
+    
+    Contains fields like `email`, `r1`, `r2`, `imagen` (if applicable), and other activity-specific data.
+    
+    **Image Handling:** Binary image data is automatically converted to base64-encoded data URLs with format `data:image/jpeg;base64,{encoded_data}` (lines 395-408).
+  </ResponseField>
+</Expandable>
+
+<Expandable title="Forum 2 Response (foro2)">
+  <ResponseField name="foro2" type="object | null">
+    Complete response data from Forum 2, including all fields from `respuestas_foro2` table.
+  </ResponseField>
+</Expandable>
+
+<Expandable title="Forum 3 Response (foro3)">
+  <ResponseField name="foro3" type="object | null">
+    Complete response data from Forum 3, including all fields from `respuestas_foro3` table.
+  </ResponseField>
+</Expandable>
+
+<Expandable title="Forum 4 Response (foro4)">
+  <ResponseField name="foro4" type="object | null">
+    Complete response data from Forum 4, including all fields from `respuestas_foro4` table.
+  </ResponseField>
+</Expandable>
+
+<Expandable title="Forum 5 Response (foro5)">
+  <ResponseField name="foro5" type="object | null">
+    Complete response data from Forum 5, including all fields from `respuestas_foro5` table.
+  </ResponseField>
+</Expandable>
+
+<Expandable title="Forum 6 Response (foro6)">
+  <ResponseField name="foro6" type="object | null">
+    Complete response data from Forum 6, including all fields from `respuestas_foro6` table.
+  </ResponseField>
+</Expandable>
+
+<Expandable title="Exam 1 Submission (examen1)">
+  <ResponseField name="examen1" type="object | null">
+    Complete submission data from Exam 1, including all fields from `examen1` table.
+  </ResponseField>
+</Expandable>
+
+<Expandable title="Exam 2 Submission (examen2)">
+  <ResponseField name="examen2" type="object | null">
+    Complete submission data from Exam 2, including all fields from `examen2` table.
+  </ResponseField>
+</Expandable>
+
+### Response Example
+
+```json
+{
+  "foro1": {
+    "email": "student@example.com",
+    "r1": "Student response text",
+    "r2": "Additional response data",
+    "imagen": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+  },
+  "foro2": {
+    "email": "student@example.com",
+    "r1": "Response content",
+    "r2": "More data"
+  },
+  "foro3": { /* ... */ },
+  "foro4": { /* ... */ },
+  "foro5": { /* ... */ },
+  "foro6": { /* ... */ },
+  "examen1": { /* ... */ },
+  "examen2": { /* ... */ }
+}
+```
+
+### Admin Account Response
+
+When requesting data for `admin@gmail.com`, all fields return `null`:
+
+```json
+{
+  "foro1": null,
+  "foro2": null,
+  "foro3": null,
+  "foro4": null,
+  "foro5": null,
+  "foro6": null,
+  "examen1": null,
+  "examen2": null
+}
+```
+
+---
+
+## Get Student Record (Student View)
+
+<ParamField path="email" type="string" required>
+  Student's email address
+</ParamField>
+
+```bash cURL
+curl -X GET "https://api.example.com/expediente_completo_alumno/student@example.com" \
+  -H "Content-Type: application/json"
+```
+
+### Response Structure
+
+Returns a limited view of student records with only specific fields (typically `r2` or `r5` fields).
+
+<Note>
+  This endpoint returns limited data suitable for student self-view:
+  - Forums 1-4, 6: Returns only `r2` field
+  - Forum 5: Returns only `r5` field
+  - Exams 1-2: Returns only `r2` field
+  - No image data conversion is performed
+</Note>
+
+### Response Example
+
+```json
+{
+  "foro1": {
+    "r2": "Student's response content"
+  },
+  "foro2": {
+    "r2": "Response data"
+  },
+  "foro3": {
+    "r2": "Response content"
+  },
+  "foro4": {
+    "r2": "Response data"
+  },
+  "foro5": {
+    "r5": "Specific field for forum 5"
+  },
+  "foro6": {
+    "r2": "Response content"
+  },
+  "examen1": {
+    "r2": "Exam submission data"
+  },
+  "examen2": {
+    "r2": "Exam submission data"
+  }
+}
+```
+
+---
+
+## Image Data Conversion
+
+The `convertir_bytes` function (lines 395-408) automatically processes binary data:
+
+```python
+def convertir_bytes(registro):
+    if not registro:
+        return
+    claves = list(registro.keys())
+    for clave in claves:
+        valor = registro[clave]
+        if isinstance(valor, memoryview):
+            valor = bytes(valor)
+        if isinstance(valor, (bytes, bytearray)):
+            encoded = base64.b64encode(valor).decode("utf-8")
+            if 'imagen' in clave.lower():
+                registro[clave] = f"data:image/jpeg;base64,{encoded}"
+            else:
+                registro[clave] = encoded
+```
+
+- Converts `memoryview` and binary data to base64
+- Fields containing "imagen" are formatted as data URLs
+- Applied to all forum responses (foro1-6) in professor view
+- Not applied in student view endpoint
+
+---
+
+## Error Responses
+
+<ResponseField name="500" type="error">
+  Database connection error
+  
+  ```json
+  {
+    "detail": "Error BD"
+  }
+  ```
+</ResponseField>

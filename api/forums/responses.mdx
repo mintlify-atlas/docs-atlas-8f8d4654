@@ -1,0 +1,440 @@
+---
+title: 'Retrieve Forum Responses'
+description: 'Fetch forum submissions and verify student participation'
+---
+
+## Dynamic Forums (1, 2, 4, 6)
+
+<RequestExample>
+
+```bash Get Forum 1 Responses
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/respuestas_foro1
+```
+
+```bash Verify Forum 4 Participation
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_foro4/student@example.com
+```
+
+</RequestExample>
+
+### GET /respuestas_foro{foro_id}
+
+Retrieve all responses for a specific forum with user information.
+
+**Implementation**: main.py:232-256
+
+<ParamField path="foro_id" type="integer" required>
+  Forum identifier: `1`, `2`, `4`, or `6`
+</ParamField>
+
+### Response Schema
+
+<ResponseField name="responses" type="array">
+  Array of forum response objects
+  <Expandable title="Response Object">
+    <ResponseField name="email" type="string">
+      Student email address
+    </ResponseField>
+    <ResponseField name="r1" type="string">
+      Response to question 1
+    </ResponseField>
+    <ResponseField name="r2" type="string">
+      Response to question 2
+    </ResponseField>
+    <ResponseField name="r3" type="string">
+      Response to question 3
+    </ResponseField>
+    <ResponseField name="r4" type="string">
+      Response to question 4
+    </ResponseField>
+    <ResponseField name="r5" type="string">
+      Response to question 5
+    </ResponseField>
+    <ResponseField name="r6" type="string">
+      Response to question 6 (if applicable)
+    </ResponseField>
+    <ResponseField name="r7" type="string">
+      Response to question 7 (forums 4, 6)
+    </ResponseField>
+    <ResponseField name="r8" type="string">
+      Response to question 8 (forum 6 only)
+    </ResponseField>
+    <ResponseField name="fecha" type="timestamp">
+      Submission timestamp (auto-generated)
+    </ResponseField>
+    <ResponseField name="nombre" type="string">
+      Student first name (from usuarios JOIN)
+    </ResponseField>
+    <ResponseField name="apellidos" type="string">
+      Student last name (from usuarios JOIN)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### User Join Behavior
+
+The endpoint attempts to JOIN with the `usuarios` table:
+
+```sql
+SELECT r.*, u.nombre, u.apellidos
+FROM {foro_nombre} r
+LEFT JOIN usuarios u ON r.email = u.email
+ORDER BY r.fecha DESC
+```
+
+<Note>
+  If the JOIN fails (e.g., usuarios table doesn't exist), the endpoint falls back to returning only forum response data without `nombre` and `apellidos` fields.
+</Note>
+
+### Example Response
+
+```json
+[
+  {
+    "email": "student1@example.com",
+    "r1": "The derivative represents the rate of change",
+    "r2": "f'(x) = 2x",
+    "r3": "Local maximum at x = 3",
+    "r4": "Concave up on (0, infinity)",
+    "r5": "Area equals 12 square units",
+    "r6": "Fundamental theorem connects derivatives and integrals",
+    "fecha": "2026-03-05T14:32:18",
+    "nombre": "Maria",
+    "apellidos": "Garcia"
+  },
+  {
+    "email": "student2@example.com",
+    "r1": "Instantaneous rate of change at a point",
+    "r2": "2x",
+    "r3": "x=3",
+    "r4": "Positive second derivative",
+    "r5": "12",
+    "r6": "Connection between differentiation and integration",
+    "fecha": "2026-03-05T13:15:42",
+    "nombre": "Juan",
+    "apellidos": "Martinez"
+  }
+]
+```
+
+---
+
+### GET /verificar_foro{foro_id}/{email}
+
+Check if a student has already participated in a forum.
+
+**Implementation**: main.py:258-271
+
+<ParamField path="foro_id" type="integer" required>
+  Forum identifier: `1`, `2`, `4`, or `6`
+</ParamField>
+
+<ParamField path="email" type="string" required>
+  Student email address to check
+</ParamField>
+
+### Response
+
+<ResponseField name="participo" type="boolean">
+  `true` if student has submitted a response, `false` otherwise
+</ResponseField>
+
+**Example Response**:
+
+```json
+{
+  "participo": true
+}
+```
+
+```json
+{
+  "participo": false
+}
+```
+
+---
+
+## Forum 3 - Table Responses
+
+<RequestExample>
+
+```bash Get Forum 3 Responses
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/respuestas_en_foro_3
+```
+
+```bash Verify Forum 3 Participation
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_en_foro_3/student@example.com
+```
+
+</RequestExample>
+
+### GET /respuestas_en_foro_3
+
+Retrieve all Forum 3 responses with table data.
+
+**Implementation**: main.py:307-316
+
+### Response Schema
+
+<ResponseField name="responses" type="array">
+  Array of Forum 3 response objects
+  <Expandable title="Response Object">
+    <ResponseField name="email" type="string">
+      Student email address
+    </ResponseField>
+    <ResponseField name="r1" type="string">
+      Response to question 1
+    </ResponseField>
+    <ResponseField name="r2" type="string">
+      Response to question 2
+    </ResponseField>
+    <ResponseField name="r3" type="string">
+      Response to question 3
+    </ResponseField>
+    <ResponseField name="r4" type="string">
+      Response to question 4
+    </ResponseField>
+    <ResponseField name="r5" type="string">
+      Response to question 5
+    </ResponseField>
+    <ResponseField name="t6_r{row}_c{col}" type="string">
+      Table cells for question 6 (21 fields: 7 rows × 3 columns)
+    </ResponseField>
+    <ResponseField name="r7" type="string">
+      Response to question 7
+    </ResponseField>
+    <ResponseField name="r8" type="string">
+      Response to question 8
+    </ResponseField>
+    <ResponseField name="fecha" type="timestamp">
+      Submission timestamp
+    </ResponseField>
+    <ResponseField name="nombre" type="string">
+      Student first name (from JOIN)
+    </ResponseField>
+    <ResponseField name="apellidos" type="string">
+      Student last name (from JOIN)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+[
+  {
+    "email": "student@example.com",
+    "r1": "Answer 1",
+    "r2": "Answer 2",
+    "r3": "Answer 3",
+    "r4": "Answer 4",
+    "r5": "Answer 5",
+    "t6_r1_c1": "f(x)",
+    "t6_r1_c2": "x^2",
+    "t6_r1_c3": "2x",
+    "t6_r2_c1": "g(x)",
+    "t6_r2_c2": "sin(x)",
+    "t6_r2_c3": "cos(x)",
+    "t6_r3_c1": "h(x)",
+    "t6_r3_c2": "e^x",
+    "t6_r3_c3": "e^x",
+    "r7": "Answer 7",
+    "r8": "Answer 8",
+    "fecha": "2026-03-05T14:20:33",
+    "nombre": "Carlos",
+    "apellidos": "Rodriguez"
+  }
+]
+```
+
+---
+
+### GET /verificar_en_foro_3/{email}
+
+Check if a student has participated in Forum 3.
+
+**Implementation**: main.py:318-329
+
+<ParamField path="email" type="string" required>
+  Student email address
+</ParamField>
+
+### Response
+
+```json
+{
+  "participo": true
+}
+```
+
+---
+
+## Forum 5 - Image Responses
+
+<RequestExample>
+
+```bash Get Forum 5 Responses
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/respuestas_en_foro_5
+```
+
+```bash Verify Forum 5 Participation
+curl https://proyecto-ingenieria-software-6ccv.onrender.com/verificar_en_foro_5/student@example.com
+```
+
+</RequestExample>
+
+### GET /respuestas_en_foro_5
+
+Retrieve all Forum 5 responses with base64-encoded images.
+
+**Implementation**: main.py:592-644
+
+### Response Schema
+
+<ResponseField name="responses" type="array">
+  Array of Forum 5 response objects
+  <Expandable title="Response Object">
+    <ResponseField name="id" type="integer">
+      Unique response ID
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      Student email address
+    </ResponseField>
+    <ResponseField name="r2" type="string">
+      Response to question 2
+    </ResponseField>
+    <ResponseField name="r4" type="string">
+      Response to question 4
+    </ResponseField>
+    <ResponseField name="r5" type="string">
+      Response to question 5
+    </ResponseField>
+    <ResponseField name="r6" type="string">
+      Response to question 6
+    </ResponseField>
+    <ResponseField name="imagen_pregunta_3_url" type="string | null">
+      Data URL for question 3 image (base64-encoded)
+      Format: `data:image/jpeg;base64,{encoded_data}`
+    </ResponseField>
+    <ResponseField name="imagen_1_url" type="string | null">
+      Data URL for table image 1 (base64-encoded)
+    </ResponseField>
+    <ResponseField name="imagen_2_url" type="string | null">
+      Data URL for table image 2 (base64-encoded)
+    </ResponseField>
+    <ResponseField name="imagen_3_url" type="string | null">
+      Data URL for table image 3 (base64-encoded)
+    </ResponseField>
+    <ResponseField name="nombre" type="string">
+      Student first name (from JOIN)
+    </ResponseField>
+    <ResponseField name="apellidos" type="string">
+      Student last name (from JOIN)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Image Encoding Process
+
+The endpoint converts binary image data (BYTEA) to base64-encoded data URLs (main.py:607-637):
+
+1. **Fetch binary data** from PostgreSQL (memoryview or bytes)
+2. **Convert to bytes** if needed: `bytes(valor)` 
+3. **Encode to base64**: `base64.b64encode(valor).decode('utf-8')`
+4. **Create data URL**: `data:image/jpeg;base64,{encoded}`
+5. **Remove binary field** and add `_url` field
+
+<Warning>
+  If image encoding fails, all image URLs are set to `null`. The endpoint handles errors gracefully to prevent response failures.
+</Warning>
+
+### Example Response
+
+```json
+[
+  {
+    "id": 42,
+    "email": "student@example.com",
+    "r2": "The limit approaches infinity",
+    "r4": "Continuous on all real numbers",
+    "r5": "Differentiable except at x=0",
+    "r6": "Graph shows vertical asymptote",
+    "imagen_pregunta_3_url": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+    "imagen_1_url": "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhE...",
+    "imagen_2_url": "data:image/jpeg;base64,R0lGODlhAQABAIAA...",
+    "imagen_3_url": null,
+    "nombre": "Ana",
+    "apellidos": "Lopez"
+  }
+]
+```
+
+### Using Image URLs
+
+The data URLs can be used directly in HTML img tags:
+
+```html
+<img src="data:image/jpeg;base64,/9j/4AAQSkZJRg..." alt="Student sketch" />
+```
+
+---
+
+### GET /verificar_en_foro_5/{email}
+
+Check if a student has participated in Forum 5.
+
+**Implementation**: main.py:578-589
+
+<ParamField path="email" type="string" required>
+  Student email address
+</ParamField>
+
+### Response
+
+```json
+{
+  "participo": true
+}
+```
+
+---
+
+## Error Handling
+
+### HTTP Status Codes
+
+<ResponseField name="404" type="Not Found">
+  Forum ID not found in configuration (dynamic forums)
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  Database connection or query error
+</ResponseField>
+
+### Graceful Degradation
+
+All endpoints implement fallback behavior:
+
+1. **JOIN failures**: Return data without user names
+2. **Image encoding errors**: Set image URLs to `null`
+3. **Database errors**: Return empty arrays or `{"participo": false}`
+
+## Sorting
+
+All response endpoints sort by submission timestamp in descending order:
+
+```sql
+ORDER BY r.fecha DESC  -- Most recent first
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Submit Responses" href="/api/forums/submit" icon="upload">
+    Learn how to submit forum responses
+  </Card>
+  <Card title="Forums Overview" href="/api/forums/overview" icon="list">
+    View forum configuration and routing
+  </Card>
+</CardGroup>

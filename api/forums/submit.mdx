@@ -1,0 +1,355 @@
+---
+title: 'Submit Forum Responses'
+description: 'Save student responses to forum activities'
+---
+
+## Dynamic Forums (1, 2, 4, 6)
+
+<RequestExample>
+
+```bash Dynamic Forum Example
+curl -X POST https://proyecto-ingenieria-software-6ccv.onrender.com/guardar_foro1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "student@example.com",
+    "r1": "The derivative represents instantaneous rate of change",
+    "r2": "f'(x) = 2x",
+    "r3": "Local maximum at x=3",
+    "r4": "Concave up on interval (0, infinity)",
+    "r5": "Area under curve equals 12 square units",
+    "r6": "Fundamental theorem connects derivatives and integrals"
+  }'
+```
+
+</RequestExample>
+
+### POST /guardar_foro{foro_id}
+
+Save responses for forums 1, 2, 4, or 6.
+
+**Implementation**: main.py:195-230
+
+<ParamField path="foro_id" type="integer" required>
+  Forum identifier: `1`, `2`, `4`, or `6`
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Student email address (unique identifier)
+</ParamField>
+
+<ParamField body="r1" type="string" default="">
+  Response to question 1
+</ParamField>
+
+<ParamField body="r2" type="string" default="">
+  Response to question 2
+</ParamField>
+
+<ParamField body="r3" type="string" default="">
+  Response to question 3
+</ParamField>
+
+<ParamField body="r4" type="string" default="">
+  Response to question 4
+</ParamField>
+
+<ParamField body="r5" type="string" default="">
+  Response to question 5
+</ParamField>
+
+<ParamField body="r6" type="string" default="">
+  Response to question 6 (forums 1, 2)
+</ParamField>
+
+<ParamField body="r7" type="string" default="">
+  Response to question 7 (forum 4, 6)
+</ParamField>
+
+<ParamField body="r8" type="string" default="">
+  Response to question 8 (forum 6 only)
+</ParamField>
+
+### Request Body Schema
+
+**RespuestasForo Model** (main.py:42-51):
+
+```python
+class RespuestasForo(BaseModel):
+    email: str
+    r1: str = ""
+    r2: str = ""
+    r3: str = ""
+    r4: str = ""
+    r5: str = ""
+    r6: str = ""
+    r7: str = ""
+    r8: str = ""
+```
+
+<Note>
+  The system dynamically validates field count based on forum configuration. Forum 1 accepts r1-r6, Forum 4 accepts r1-r7, Forum 6 accepts r1-r8.
+</Note>
+
+### Response
+
+<ResponseField name="mensaje" type="string">
+  Success or error message
+</ResponseField>
+
+<ResponseField name="exito" type="boolean">
+  Operation success status
+</ResponseField>
+
+**Success Response**:
+
+```json
+{
+  "mensaje": "Guardado",
+  "exito": true
+}
+```
+
+**Duplicate Submission**:
+
+```json
+{
+  "mensaje": "Ya has participado",
+  "exito": true
+}
+```
+
+**Error Response**:
+
+```json
+{
+  "mensaje": "Error message details",
+  "exito": false
+}
+```
+
+---
+
+## Forum 3 - Table Responses
+
+<RequestExample>
+
+```bash Forum 3 Example
+curl -X POST https://proyecto-ingenieria-software-6ccv.onrender.com/guardar_en_foro_3 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "student@example.com",
+    "r1": "Answer to question 1",
+    "r2": "Answer to question 2",
+    "r3": "Answer to question 3",
+    "r4": "Answer to question 4",
+    "r5": "Answer to question 5",
+    "t6_r1_c1": "f(x)",
+    "t6_r1_c2": "x^2",
+    "t6_r1_c3": "2x",
+    "t6_r2_c1": "g(x)",
+    "t6_r2_c2": "sin(x)",
+    "t6_r2_c3": "cos(x)",
+    "r7": "Answer to question 7",
+    "r8": "Answer to question 8"
+  }'
+```
+
+</RequestExample>
+
+### POST /guardar_en_foro_3
+
+Save responses for Forum 3 with complex table structure.
+
+**Implementation**: main.py:277-305
+
+<ParamField body="email" type="string" required>
+  Student email address
+</ParamField>
+
+<ParamField body="r1" type="string" default="">
+  Response to question 1
+</ParamField>
+
+<ParamField body="r2" type="string" default="">
+  Response to question 2
+</ParamField>
+
+<ParamField body="r3" type="string" default="">
+  Response to question 3
+</ParamField>
+
+<ParamField body="r4" type="string" default="">
+  Response to question 4
+</ParamField>
+
+<ParamField body="r5" type="string" default="">
+  Response to question 5
+</ParamField>
+
+<ParamField body="t6_r{row}_c{col}" type="string" default="">
+  Table cells for question 6 (7 rows × 3 columns)
+  - Rows: 1-7
+  - Columns: 1-3
+  - Example: `t6_r1_c1`, `t6_r3_c2`, `t6_r7_c3`
+</ParamField>
+
+<ParamField body="r7" type="string" default="">
+  Response to question 7
+</ParamField>
+
+<ParamField body="r8" type="string" default="">
+  Response to question 8
+</ParamField>
+
+### Request Body Schema
+
+**RespuestaForo_3 Model** (main.py:54-64):
+
+```python
+class RespuestaForo_3(BaseModel):
+    email: str
+    r1: str = ""; r2: str = ""; r3: str = ""; r4: str = ""; r5: str = ""
+    t6_r1_c1: str = ""; t6_r1_c2: str = ""; t6_r1_c3: str = ""
+    t6_r2_c1: str = ""; t6_r2_c2: str = ""; t6_r2_c3: str = ""
+    t6_r3_c1: str = ""; t6_r3_c2: str = ""; t6_r3_c3: str = ""
+    t6_r4_c1: str = ""; t6_r4_c2: str = ""; t6_r4_c3: str = ""
+    t6_r5_c1: str = ""; t6_r5_c2: str = ""; t6_r5_c3: str = ""
+    t6_r6_c1: str = ""; t6_r6_c2: str = ""; t6_r6_c3: str = ""
+    t6_r7_c1: str = ""; t6_r7_c2: str = ""; t6_r7_c3: str = ""
+    r7: str = ""; r8: str = ""
+```
+
+<Warning>
+  Question 6 uses a table format with 21 fields (7 rows × 3 columns). All table fields must be included in the request body.
+</Warning>
+
+### Response
+
+Same format as dynamic forums:
+
+```json
+{
+  "mensaje": "Guardado",
+  "exito": true
+}
+```
+
+---
+
+## Forum 5 - Image Uploads
+
+<RequestExample>
+
+```bash Forum 5 Example
+curl -X POST https://proyecto-ingenieria-software-6ccv.onrender.com/guardar_foro5/student@example.com \
+  -F "r2=The limit approaches infinity" \
+  -F "r3=See attached sketch" \
+  -F "r4=Continuous on all real numbers" \
+  -F "r5=Differentiable except at x=0" \
+  -F "r6=Graph shows vertical asymptote" \
+  -F "imagen_pregunta_3=@sketch.jpg" \
+  -F "imagenes=@graph1.png" \
+  -F "imagenes=@graph2.png" \
+  -F "imagenes=@graph3.png"
+```
+
+</RequestExample>
+
+### POST /guardar_foro5/{email}
+
+Save Forum 5 responses with image uploads (multipart/form-data).
+
+**Implementation**: main.py:534-574
+
+<ParamField path="email" type="string" required>
+  Student email address (URL parameter)
+</ParamField>
+
+<ParamField body="r2" type="string" default="">
+  Response to question 2 (form field)
+</ParamField>
+
+<ParamField body="r3" type="string" default="">
+  Response to question 3 (form field)
+</ParamField>
+
+<ParamField body="r4" type="string" default="">
+  Response to question 4 (form field)
+</ParamField>
+
+<ParamField body="r5" type="string" default="">
+  Response to question 5 (form field)
+</ParamField>
+
+<ParamField body="r6" type="string" default="">
+  Response to question 6 (form field)
+</ParamField>
+
+<ParamField body="imagen_pregunta_3" type="file">
+  Image file for question 3 sketch (binary data)
+</ParamField>
+
+<ParamField body="imagenes" type="file[]">
+  Array of 3 image files for table questions (binary data)
+  - imagenes[0] → imagen_1
+  - imagenes[1] → imagen_2
+  - imagenes[2] → imagen_3
+</ParamField>
+
+### Content Type
+
+```
+Content-Type: multipart/form-data
+```
+
+<Note>
+  Unlike other forums, Forum 5 uses FormData with file uploads. Text responses are sent as form fields, and images are uploaded as binary files.
+</Note>
+
+### Image Storage
+
+Images are stored as binary data (BYTEA) in PostgreSQL:
+
+- **imagen_pregunta_3**: Single sketch/drawing for question 3
+- **imagen_1, imagen_2, imagen_3**: Three table images from the `imagenes` array
+
+### Response
+
+```json
+{
+  "exito": true
+}
+```
+
+---
+
+## Error Handling
+
+### HTTP Status Codes
+
+<ResponseField name="404" type="Not Found">
+  Forum ID not found in configuration (dynamic forums only)
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  Database connection error
+</ResponseField>
+
+### Database Errors
+
+All submission endpoints use transactions with automatic rollback on failure:
+
+```python
+try:
+    cursor.execute(query, valores)
+    conexion.commit()
+except Exception as e:
+    conexion.rollback()
+    return {"mensaje": str(e), "exito": False}
+```
+
+## Next Steps
+
+<Card title="Retrieve Responses" href="/api/forums/responses" icon="download">
+  Learn how to fetch and verify forum participation
+</Card>

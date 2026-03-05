@@ -1,0 +1,329 @@
+---
+title: Student Role Guide
+description: Complete guide for students using the Calculus Learning Platform
+icon: graduation-cap
+---
+
+The student role provides access to interactive calculus learning materials focused on understanding derivatives through the contextualized study of bone mineral density (DMO).
+
+## What Students Can Do
+
+As a student on the platform, you have access to:
+
+<CardGroup cols={2}>
+  <Card title="Interactive Forums" icon="comments">
+    Participate in 6 themed forums exploring derivative concepts through bone density analysis
+  </Card>
+  <Card title="Examinations" icon="file-pen">
+    Complete 2 comprehensive exams to demonstrate your understanding
+  </Card>
+  <Card title="Progress Tracking" icon="chart-line">
+    View your completion status and overall progress in real-time
+  </Card>
+  <Card title="Professor Feedback" icon="message">
+    Receive personalized feedback from your professor on each activity
+  </Card>
+</CardGroup>
+
+## Accessing the Platform
+
+<Steps>
+  <Step title="Login">
+    Navigate to the login page and enter your registered email and password.
+  </Step>
+  
+  <Step title="Welcome Screen">
+    Upon first login, you'll see a welcome screen (`Bienvenida.vue`) introducing the platform's learning objectives:
+    
+    ```vue
+    <p>
+      Esta plataforma está diseñada para comprender el concepto de
+      <strong class="text-white">derivada</strong> a través de la resolución 
+      de una situación contextualizada en la que se analiza la relación 
+      existente entre la edad de una persona y la densidad mineral ósea.
+    </p>
+    ```
+    
+    Click "Comenzar" to proceed to Foro 1.
+  </Step>
+  
+  <Step title="Student Dashboard">
+    Access your main dashboard at `/panel-alumno` to see all activities and your progress.
+  </Step>
+</Steps>
+
+## Student Dashboard Overview
+
+The student dashboard (`panel_alumno.vue`) displays three main sections:
+
+### 1. Forums Section
+
+View the status of all 6 forums with completion indicators:
+
+```vue
+const forosStatus = computed(() => [
+  { id: 1, code: 'foro1', name: "Foro 1: Densidad", completed: !!expediente.value.foro1 },
+  { id: 2, code: 'foro2', name: "Foro 2: Gráfico", completed: !!expediente.value.foro2 },
+  { id: 3, code: 'foro3', name: "Foro 3: DMO Cadera", completed: !!expediente.value.foro3 },
+  { id: 4, code: 'foro4', name: "Foro 4: Análisis", completed: !!expediente.value.foro4 },
+  { id: 5, code: 'foro5', name: "Foro 5: Razón Cambio", completed: !!expediente.value.foro5 },
+  { id: 6, code: 'foro6', name: "Foro 6: Covariación", completed: !!expediente.value.foro6 }
+]);
+```
+
+Each forum card shows:
+- **Completion status**: Green badge for completed, gray for pending
+- **Feedback notification**: Yellow button appears when professor has provided feedback
+
+<Info>
+The "Ver nota del maestro" button only appears when your professor has left feedback on that specific forum.
+</Info>
+
+### 2. Examinations Section
+
+Track your exam completion:
+
+```vue
+const examenesStatus = computed(() => [
+  { id: 1, code: 'examen1', name: "Examen 1", completed: !!expediente.value.examen1 },
+  { id: 2, code: "examen2", name: "Examen 2", completed: !!expediente.value.examen2 },
+]);
+```
+
+Similar to forums, exam cards display completion status and professor feedback notifications.
+
+### 3. Overall Progress
+
+A circular progress indicator shows your completion percentage:
+
+```vue
+const progressPercentage = computed(() => {
+  const total = forosStatus.value.length + examenesStatus.value.length;
+  const completed = forosStatus.value.filter((f) => f.completed).length + 
+                    examenesStatus.value.filter((e) => e.completed).length;
+  return total > 0 ? (completed / total) * 100 : 0;
+});
+```
+
+This dynamically calculates your progress across all 8 activities (6 forums + 2 exams).
+
+## Navigating Forums
+
+The sidebar (`sidebar.vue`) organizes forums into three activities:
+
+### Activity 1: Understanding Bone Density
+- **Foro 1: Densidad mineral** (`/foro1`) - Introduction to bone mineral density concepts
+
+### Activity 2: Comparative Analysis
+- **Foro 2: Gráfico Comparativo** (`/foro2`) - Analyzing comparative graphs
+- **Examen 1** (`/foro2/examen1`) - First assessment
+
+### Activity 3: Derivative Concepts
+- **Foro 3: DMO Cadera** (`/foro3`) - Hip bone density analysis
+- **Foro 4: Análisis DMO** (`/foro4`) - BMD analytical expressions
+- **Foro 5: Razón de cambio** (`/foro5`) - Rate of change exploration
+- **Foro 6: Covariación** (`/foro6`) - Covariation concepts
+- **Examen 2** (`/foro6/examen2`) - Final assessment
+
+<Tip>
+The sidebar is responsive - on mobile devices, tap the menu icon in the top-left to access navigation.
+</Tip>
+
+## Participating in Forums
+
+Each forum follows a structured format:
+
+<Steps>
+  <Step title="Review Learning Materials">
+    Forums begin with contextual information and visual aids. In Foro 1, for example:
+    
+    ```vue
+    <img :src="Grafica" alt="Gráfico de Densidad Mineral Ósea" class="mx-auto w-150 p-5" />
+    ```
+    
+    Toggle the "Mostrar Material" button to view or hide educational content.
+  </Step>
+  
+  <Step title="Answer Questions">
+    Respond to multiple questions in textarea fields:
+    
+    ```vue
+    <textarea
+      v-model="r1"
+      rows="3"
+      placeholder="Escribe tu análisis aquí..."
+      class="input-foro"
+    ></textarea>
+    ```
+    
+    Each forum contains 5-8 questions designed to build understanding progressively.
+  </Step>
+  
+  <Step title="Submit Your Responses">
+    Click the submit button to save your answers. The system stores your responses in your student record (expediente).
+  </Step>
+  
+  <Step title="Check for Feedback">
+    Return to your dashboard to see if your professor has provided feedback. A yellow notification button will appear on completed activities.
+  </Step>
+</Steps>
+
+## Viewing Professor Feedback
+
+When feedback is available:
+
+1. Navigate to your student dashboard
+2. Look for the yellow "Ver nota del maestro" or "Ver nota del profe" button on completed activities
+3. Click to open a modal displaying the feedback:
+
+```vue
+<div v-if="modalOpen" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+  <div class="bg-[#1e293b] w-full max-w-md rounded-2xl">
+    <div class="bg-blue-900/50 p-4">
+      <h3 class="font-bold text-white text-lg">
+        <span class="material-symbols-outlined text-yellow-400">rate_review</span>
+        Retroalimentación
+      </h3>
+    </div>
+    <div class="p-6">
+      <p class="text-xs text-blue-300 font-bold">{{ feedbackActual.titulo }}</p>
+      <div class="bg-gray-800/50 p-4 rounded-lg text-gray-300">
+        {{ feedbackActual.texto }}
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+<Note>
+Feedback is retrieved via the `/obtener_feedback/{email}` API endpoint and is specific to each activity.
+</Note>
+
+## Taking Examinations
+
+Exams are integrated into the learning sequence:
+
+- **Examen 1** follows Foro 2 and tests understanding of density concepts and comparative analysis
+- **Examen 2** follows Foro 6 and assesses mastery of derivative concepts including rate of change and covariation
+
+Exams function similarly to forums but may include:
+- Multiple choice questions
+- Short answer responses
+- Calculation problems
+- Conceptual analysis
+
+<Warning>
+Once submitted, exam responses typically cannot be modified. Review your answers carefully before submission.
+</Warning>
+
+## Understanding Your Student Record
+
+Your expediente (student record) is retrieved from the API:
+
+```javascript
+const expRes = await fetch(`${API_URL}/expediente_completo_alumno/${email}`);
+if (expRes.ok) expediente.value = await expRes.json();
+```
+
+It contains:
+- Completion status for each forum (foro1-foro6)
+- Completion status for each exam (examen1-examen2)
+- Your submitted responses for all activities
+- Timestamps and metadata
+
+## User Profile Display
+
+Your profile information appears in the dashboard header:
+
+```vue
+<div class="flex items-center gap-4 p-4 rounded-xl border-2 border-blue-700 bg-slate-800">
+  <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
+    {{ userInitials }}
+  </div>
+  <div>
+    <h2 class="text-lg font-semibold text-white">
+      {{ userData.nombre }} {{ userData.apellidos }}
+    </h2>
+    <p class="text-sm text-blue-400">{{ userData.email }}</p>
+  </div>
+</div>
+```
+
+The system automatically generates initials from your first and last name.
+
+## Mobile Experience
+
+The platform is fully responsive:
+
+- **Mobile sidebar**: Access via hamburger menu button
+- **Responsive layouts**: Content adapts from single-column (mobile) to multi-column (desktop)
+- **Touch-friendly**: All interactive elements are optimized for touch input
+
+```vue
+<div class="flex flex-col md:flex-row min-h-screen bg-slate-900">
+  <Sidebar class="hidden md:block" />
+  <div class="flex-1 p-6 md:p-12 ml-0 md:ml-72 transition-all duration-300">
+    <!-- Content -->
+  </div>
+</div>
+```
+
+## API Endpoints Used
+
+Students interact with these backend endpoints:
+
+| Endpoint | Purpose |
+|----------|----------|
+| `/expediente_completo_alumno/{email}` | Retrieve student record with all activity data |
+| `/conseguir_usuario/{email}` | Fetch user profile information |
+| `/obtener_feedback/{email}` | Get professor feedback for completed activities |
+
+<Info>
+All API requests use the base URL: `https://proyecto-ingenieria-software-6ccv.onrender.com`
+</Info>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Save Regularly" icon="floppy-disk">
+    While the platform autosaves, it's good practice to note your responses elsewhere before submission
+  </Card>
+  
+  <Card title="Check Feedback" icon="bell">
+    Regularly review professor feedback to improve your understanding and performance
+  </Card>
+  
+  <Card title="Follow Sequence" icon="list-ol">
+    Complete forums in order (1-6) as concepts build progressively
+  </Card>
+  
+  <Card title="Ask Questions" icon="question">
+    If forum questions are unclear, reach out to your professor through provided channels
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Progress Not Updating
+If your progress percentage doesn't update after completing an activity:
+1. Refresh the dashboard page
+2. Verify submission was successful (check for confirmation message)
+3. Log out and back in to force data refresh
+
+### Feedback Not Visible
+If you expect feedback but don't see the notification button:
+- Ensure the activity is marked as completed
+- Wait a few minutes and refresh - feedback may be delayed
+- Confirm with your professor that feedback was submitted
+
+### Navigation Issues on Mobile
+If the sidebar doesn't appear on mobile:
+- Look for the menu icon (three horizontal lines) in the top-left
+- Ensure JavaScript is enabled in your browser
+- Try refreshing the page
+
+## Related Resources
+
+- [Professor Role Guide](/roles/professors) - Understand how professors interact with the platform
+- [Forums Feature](/features/forums) - Learn about the forum system
+- [Authentication API](/api/auth/login) - API authentication documentation

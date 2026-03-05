@@ -1,0 +1,146 @@
+---
+title: 'User Registration'
+api: 'POST /registrar'
+description: 'Register a new user in the system'
+---
+
+## Endpoint
+
+```
+POST /registrar
+```
+
+Creates a new user account with email, password, and optional name information.
+
+## Request Body
+
+The request uses the `UsuarioRegistro` Pydantic model:
+
+<ParamField body="email" type="string" required>
+  User's email address (used as unique identifier)
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password (stored as plain text in current implementation)
+</ParamField>
+
+<ParamField body="nombre" type="string">
+  User's first name (optional, defaults to `null`)
+</ParamField>
+
+<ParamField body="apellidos" type="string">
+  User's last name (optional, defaults to `null`)
+</ParamField>
+
+## Response
+
+<ResponseField name="mensaje" type="string">
+  Status message describing the result
+</ResponseField>
+
+<ResponseField name="exito" type="boolean">
+  Indicates whether registration was successful
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "mensaje": "Usuario creado",
+  "exito": true
+}
+```
+
+### Error Responses
+
+**Duplicate User (409-style):**
+```json
+{
+  "mensaje": "El usuario ya existe",
+  "exito": false
+}
+```
+
+**Database Error:**
+```json
+{
+  "mensaje": "Error: [error details]",
+  "exito": false
+}
+```
+
+## Error Handling
+
+The endpoint handles duplicate email registrations gracefully by catching `psycopg2.IntegrityError` and returning `exito: false` instead of raising an HTTP exception. All database errors result in a rollback.
+
+## Examples
+
+### cURL
+
+```bash
+curl -X POST http://localhost:8000/registrar \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "student@example.com",
+    "password": "securepass123",
+    "nombre": "Juan",
+    "apellidos": "García"
+  }'
+```
+
+### Python (requests)
+
+```python
+import requests
+
+url = "http://localhost:8000/registrar"
+data = {
+    "email": "student@example.com",
+    "password": "securepass123",
+    "nombre": "Juan",
+    "apellidos": "García"
+}
+
+response = requests.post(url, json=data)
+result = response.json()
+
+if result["exito"]:
+    print(f"Registration successful: {result['mensaje']}")
+else:
+    print(f"Registration failed: {result['mensaje']}")
+```
+
+### JavaScript (axios)
+
+```javascript
+const axios = require('axios');
+
+const registerUser = async () => {
+  try {
+    const response = await axios.post('http://localhost:8000/registrar', {
+      email: 'student@example.com',
+      password: 'securepass123',
+      nombre: 'Juan',
+      apellidos: 'García'
+    });
+    
+    if (response.data.exito) {
+      console.log(`Registration successful: ${response.data.mensaje}`);
+    } else {
+      console.log(`Registration failed: ${response.data.mensaje}`);
+    }
+  } catch (error) {
+    console.error('Request failed:', error.message);
+  }
+};
+
+registerUser();
+```
+
+## Implementation Notes
+
+- Email is used as the primary unique identifier (enforced by database constraint)
+- Passwords are stored in plain text (⚠️ security concern for production)
+- `nombre` and `apellidos` fields default to `null` if not provided
+- Database connection errors return HTTP 500
+- The endpoint performs a rollback on any database error to maintain data integrity
